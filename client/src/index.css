@@ -1,19 +1,82 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: "Playfair Display", Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-serif: "Fraunces", Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --color-primary: #0F5132;
-  --color-primary-light: #167a4c;
-  --color-primary-dark: #0a3a24;
-  --color-primary-cream: #f4fcf7;
-  --color-accent: #D4AF37;
-  --color-accent-light: #e3c458;
-  --color-accent-dark: #b39224;
-  --color-background-gray: #f8f9fa;
+  --color-primary: #2E4A9E;
+  --color-primary-light: #4A68C4;
+  --color-primary-dark: #1E3370;
+  --color-primary-cream: #EEF1FA;
+  --color-accent: #C9962E;
+  --color-accent-light: #E0B65A;
+  --color-accent-dark: #9C7621;
+  --color-background-gray: #F7F8FB;
+}
+
+/* ==========================================
+   THEME SYSTEM
+   Two named themes sharing one signature accent (antique gold),
+   flipping surfaces between "clean modern SaaS" (default, light)
+   and "dark premium" (editorial, ink-black).
+   Overriding Tailwind v4's own CSS variables here re-skins every
+   utility class (bg-white, text-gray-800, bg-primary, ...) at once.
+   ========================================== */
+[data-theme="premium"] {
+  --color-white: #12151d;
+  --color-gray-50: #171b25;
+  --color-gray-100: #1c202b;
+  --color-gray-200: #2a3040;
+  --color-gray-300: #384057;
+  --color-gray-400: #626c85;
+  --color-gray-500: #8890a6;
+  --color-gray-600: #a7aec2;
+  --color-gray-700: #c6cbdb;
+  --color-gray-800: #e8eaf1;
+  --color-gray-900: #f7f8fc;
+
+  --color-background-gray: #090b11;
+
+  --color-primary: #3f9268;
+  --color-primary-light: #57b083;
+  --color-primary-dark: #276b4a;
+  --color-primary-cream: #131e18;
+
+  --color-accent: #d9b968;
+  --color-accent-light: #ecd28c;
+  --color-accent-dark: #b8933f;
+
+  --color-green-50: #12271c;
+  --color-green-100: #173423;
+  --color-green-200: #1f4a30;
+  --color-green-600: #3fae7c;
+  --color-green-700: #6bd7a4;
+
+  --color-amber-50: #2a2210;
+  --color-amber-100: #3a2e14;
+  --color-amber-200: #4d3d1a;
+  --color-amber-700: #e0b84c;
+  --color-amber-800: #f0c968;
+
+  --color-red-50: #2a1416;
+  --color-red-100: #3a1b1e;
+  --color-red-200: #4d252a;
+  --color-red-500: #e5626b;
+  --color-red-600: #ef7a82;
+  --color-red-700: #f79aa0;
+
+  --color-blue-50: #10202c;
+  --color-blue-100: #15293a;
+  --color-blue-200: #1c3750;
+  --color-blue-600: #5aa8e0;
+  --color-blue-700: #7cbdec;
+}
+
+/* Smooth theme-switch transition on the properties that change */
+body, .academic-card, header, footer, button, input, select, textarea {
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
 }
 
 /* Custom Scrollbar */
@@ -55,4 +118,87 @@
 
 .text-mono {
   font-family: var(--font-mono);
+}
+
+/* ==========================================
+   FLOATING 3D BACKGROUND — drifting manuscript panels
+   Pure CSS 3D transforms, tinted with the shared gold accent,
+   fixed behind all content, non-interactive.
+   ========================================== */
+.shapes-field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 1600px;
+}
+
+.floating-shape {
+  position: absolute;
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 55%, transparent) 0%, transparent 75%);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  box-shadow: 0 30px 60px -20px color-mix(in srgb, var(--color-accent) 25%, transparent);
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation-name: float-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.floating-shape::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22%;
+  height: 22%;
+  background: color-mix(in srgb, var(--color-background-gray) 92%, transparent);
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+  border-radius: 0 14px 0 0;
+}
+
+@keyframes float-drift {
+  0% {
+    transform: translate3d(0, 0, 0) rotateX(12deg) rotateY(-8deg) rotateZ(-4deg);
+  }
+  50% {
+    transform: translate3d(18px, -34px, 40px) rotateX(-8deg) rotateY(10deg) rotateZ(5deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotateX(12deg) rotateY(-8deg) rotateZ(-4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-shape {
+    animation: none !important;
+  }
+}
+
+/* ==========================================
+   PREMIUM GLASS PANEL — used on auth screens & hero cards
+   ========================================== */
+.glass-panel {
+  background: color-mix(in srgb, var(--color-white) 72%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid color-mix(in srgb, var(--color-gray-300) 60%, transparent);
+}
+
+.tilt-card {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  transform-style: preserve-3d;
+}
+
+.tilt-card:hover {
+  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateY(-4px);
+  box-shadow: 0 24px 48px -16px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt-card:hover {
+    transform: none;
+  }
 }

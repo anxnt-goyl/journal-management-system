@@ -62,15 +62,16 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="w-full min-h-[80vh] flex items-center justify-center bg-background-gray py-12 px-4 sm:px-6 lg:px-8 text-left">
+    <div className="w-full min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 text-left relative">
       {ToastComponent}
-      <div className="max-w-4xl w-full bg-white border border-gray-150 rounded-xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
-        
+      <div className="max-w-4xl w-full glass-panel tilt-card rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 relative">
+
         {/* SIDEBAR: GENERAL PUBLISHING INFO */}
         <div className="bg-primary text-white p-8 flex flex-col justify-between relative overflow-hidden hidden md:flex">
           {/* subtle mesh decoration */}
-          <div className="absolute inset-0 bg-[radial-gradient(#167a4c_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
-          
+          <div className="absolute inset-0 bg-[radial-gradient(var(--color-primary-light)_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
+          <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-accent/20 blur-3xl" />
+
           <div className="space-y-4 relative z-10">
             <span className="text-[10px] uppercase font-mono tracking-widest text-accent font-bold">Editorial Office Ingress</span>
             <h2 className="font-serif font-bold text-2.5xl leading-tight">Secure Manuscript & Review Portal</h2>
@@ -88,18 +89,18 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
         </div>
 
         {/* MAIN PANEL: AUTH FORM */}
-        <div className="p-8 flex flex-col justify-center">
+        <div className="p-8 flex flex-col justify-center bg-white/40">
           <div className="mb-6">
             <h2 className="font-serif font-bold text-2xl text-gray-900 tracking-tight">Portal Authentication</h2>
             <p className="text-xs text-gray-500 mt-1">Please select your active role and sign in to access your specialized workspace.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+
             {/* ROLE TOGGLE */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">Your Active System Role</label>
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-50 border border-gray-150 rounded-lg">
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-50 border border-gray-200 rounded-lg">
                 {(['author', 'reviewer', 'admin'] as UserRole[]).map((r) => (
                   <button
                     key={r}
@@ -153,7 +154,7 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
           </form>
 
           {/* QUICK LOGIN SHORTCUTS FOR REVIEWING */}
-          <div className="mt-6 border-t border-gray-100 pt-5 space-y-2.5">
+          <div className="mt-6 border-t border-gray-200 pt-5 space-y-2.5">
             <span className="block text-[10px] font-bold text-gray-400 uppercase text-center">Quick Profile Simulation</span>
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -164,13 +165,13 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
               </button>
               <button
                 onClick={() => handleQuickLogin('reviewer', 'marcus.v@oxford.ac.uk')}
-                className="py-2 px-1 text-[11px] font-semibold border border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors leading-tight"
+                className="py-2 px-1 text-[11px] font-semibold border border-accent/30 text-accent-dark bg-accent/10 hover:bg-accent/20 rounded-lg transition-colors leading-tight"
               >
                 Reviewer<br /><span className="text-[9px] font-mono font-normal">Prof. Vance</span>
               </button>
               <button
                 onClick={() => handleQuickLogin('admin', 'a.sterling@nature-jms.org')}
-                className="py-2 px-1 text-[11px] font-semibold border border-gray-200 text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors leading-tight"
+                className="py-2 px-1 text-[11px] font-semibold border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors leading-tight"
               >
                 Editor<br /><span className="text-[9px] font-mono font-normal">Prof. Alistair</span>
               </button>

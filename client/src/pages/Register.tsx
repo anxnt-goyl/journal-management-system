@@ -44,12 +44,13 @@ export const Register: React.FC<RegisterProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="w-full min-h-[80vh] flex items-center justify-center bg-background-gray py-12 px-4 sm:px-6 lg:px-8 text-left">
+    <div className="w-full min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 text-left relative">
       {ToastComponent}
-      <div className="max-w-md w-full bg-white border border-gray-150 rounded-xl shadow-xl p-8 space-y-6">
-        
+      <div className="max-w-md w-full glass-panel tilt-card rounded-2xl shadow-2xl p-8 space-y-6 relative overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-56 h-56 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
+
         {/* TOP */}
-        <div className="space-y-1.5 text-center">
+        <div className="space-y-1.5 text-center relative z-10">
           <div className="w-12 h-12 rounded-xl bg-primary-cream border border-primary/10 flex items-center justify-center text-primary mx-auto">
             <UserPlus className="w-6 h-6" />
           </div>
@@ -58,8 +59,7 @@ export const Register: React.FC<RegisterProps> = ({ onNavigate }) => {
         </div>
 
         {/* REGISTRATION FORM */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          
+        <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
           {/* ROLE TOGGLE */}
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">Intended System Role</label>
@@ -129,7 +129,7 @@ export const Register: React.FC<RegisterProps> = ({ onNavigate }) => {
           </Button>
         </form>
 
-        <div className="text-center pt-2 border-t border-gray-100">
+        <div className="text-center pt-2 border-t border-gray-100 relative z-10">
           <button
             onClick={() => onNavigate('login')}
             className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline"

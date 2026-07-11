@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { FloatingShapes } from './components/common/FloatingShapes';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { Home } from './pages/Home';
@@ -79,12 +81,16 @@ function AppContent() {
   const isDashboardView = currentPath.startsWith('dashboard_');
 
   return (
-    <div className="min-h-screen flex flex-col bg-background-gray font-sans antialiased text-gray-800 selection:bg-primary/10 selection:text-primary">
+    <div className="min-h-screen flex flex-col bg-background-gray font-sans antialiased text-gray-800 selection:bg-primary/10 selection:text-primary relative">
+      <FloatingShapes />
+
       {/* Dynamic Header */}
-      <Navbar onNavigate={handleNavigate} currentPath={currentPath} />
+      <div className="relative z-10">
+        <Navbar onNavigate={handleNavigate} currentPath={currentPath} />
+      </div>
 
       {/* Main Container with Motion Page Transitions */}
-      <main className="flex-grow flex flex-col w-full relative">
+      <main className="flex-grow flex flex-col w-full relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPath}
@@ -100,15 +106,21 @@ function AppContent() {
       </main>
 
       {/* Dynamic Academic Footer (Hidden inside busy work dashboards) */}
-      {!isDashboardView && <Footer onNavigate={handleNavigate} />}
+      {!isDashboardView && (
+        <div className="relative z-10">
+          <Footer onNavigate={handleNavigate} />
+        </div>
+      )}
     </div>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

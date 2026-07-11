@@ -5,7 +5,8 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { BookOpen, User, LogOut, Menu, X, ArrowRight, ShieldCheck, HelpCircle } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { BookOpen, User, LogOut, Menu, X, ArrowRight, ShieldCheck, HelpCircle, Sun, Moon } from 'lucide-react';
 import { Button } from '../common/UI';
 
 interface NavbarProps {
@@ -15,6 +16,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPath }) => {
   const { user, currentRole, switchRole, logout, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -125,6 +127,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPath }) => {
           {/* Action Buttons */}
           <div className="hidden lg:flex items-center gap-3">
             <button
+              onClick={toggleTheme}
+              className="p-2 text-gray-500 hover:text-accent rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+              title={theme === 'premium' ? 'Switch to modern light theme' : 'Switch to dark premium theme'}
+            >
+              {theme === 'premium' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
               onClick={() => handleLinkClick('search')}
               className="p-2 text-gray-500 hover:text-primary rounded-lg hover:bg-gray-50 transition-colors"
               title="Search published articles"
@@ -185,6 +194,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPath }) => {
 
           {/* Mobile menu trigger */}
           <div className="flex items-center gap-2 lg:hidden">
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-gray-500 hover:text-accent rounded-lg transition-colors border border-gray-200"
+              title="Toggle theme"
+            >
+              {theme === 'premium' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <button
               onClick={() => handleLinkClick('search')}
               className="p-2 text-gray-500 hover:text-primary rounded-lg transition-colors"
