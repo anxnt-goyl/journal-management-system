@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { getNotifications, markNotificationRead } from '../controllers/notificationController';
+import { protect } from '../middleware/authMiddleware';
+
+const router = Router();
+
+router.get('/notifications', protect, getNotifications);
+router.patch('/notifications/:notificationId/read', protect, markNotificationRead);
+
+export default router;
