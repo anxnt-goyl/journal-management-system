@@ -14,7 +14,6 @@ const USERS_KEY = `${STORAGE_PREFIX}users`;
 const STATS_KEY = `${STORAGE_PREFIX}stats`;
 const API_BASE_URL = '/api';
 
-let hasSyncedUsers = false;
 let hasSyncedPapers = false;
 let hasSyncedIssues = false;
 let hasSyncedAnnouncements = false;
@@ -372,11 +371,11 @@ export function initializeStorage() {
 initializeStorage();
 
 // User APIs
+// Note: user directory is intentionally NOT synced from the backend here.
+// /api/users is admin-only; hitting it from public/unauthenticated pages
+// only produced console noise (401s) and had no legitimate use case.
 export function getUsers(): User[] {
-  const users = readStorage<User[]>(USERS_KEY, INITIAL_USERS);
-  syncFromApiOnce<User[]>( '/users', USERS_KEY, INITIAL_USERS, { current: hasSyncedUsers });
-  hasSyncedUsers = true;
-  return users;
+  return readStorage<User[]>(USERS_KEY, INITIAL_USERS);
 }
 
 export function getUserById(id: string): User | undefined {
@@ -395,7 +394,7 @@ export function updateUser(user: User): void {
 // Paper APIs
 export function getPapers(): Paper[] {
   const papers = readStorage<Paper[]>(PAPERS_KEY, INITIAL_PAPERS);
-  syncFromApiOnce<Paper[]>('/papers', PAPERS_KEY, INITIAL_PAPERS, { current: hasSyncedPapers });
+  syncFromApiOnce<Paper[]>('/papers/published', PAPERS_KEY, INITIAL_PAPERS, { current: hasSyncedPapers });
   hasSyncedPapers = true;
   return papers;
 }

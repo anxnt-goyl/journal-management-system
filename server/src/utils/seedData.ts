@@ -2,6 +2,7 @@ export const seedUsers = [
   {
     name: 'Dr. Emily Harrison',
     email: 'emily.h@university.edu',
+    password: 'Journal@123',
     role: 'author',
     institution: 'Department of Computer Science, Stanford University',
     bio: 'Associate Professor specializing in Neural Architectures, Generative AI, and Intelligent Systems.',
@@ -11,6 +12,7 @@ export const seedUsers = [
   {
     name: 'Prof. Marcus Vance',
     email: 'marcus.v@oxford.ac.uk',
+    password: 'Journal@123',
     role: 'reviewer',
     institution: 'Oxford e-Research Centre, University of Oxford',
     bio: 'Lead researcher in high-performance computing, quantum computing architectures, and cryptographic structures.',
@@ -21,6 +23,7 @@ export const seedUsers = [
   {
     name: 'Prof. Alistair Sterling',
     email: 'a.sterling@nature-jms.org',
+    password: 'Journal@123',
     role: 'admin',
     institution: 'Editor-in-Chief, Journal of Modern Science',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',

@@ -17,6 +17,17 @@ export const getPapers = async (_req: Request, res: Response) => {
   }
 };
 
+// Public: only ever returns papers that have cleared review and been published.
+// Safe to expose without authentication (used on the public landing/search pages).
+export const getPublishedPapers = async (_req: Request, res: Response) => {
+  try {
+    const papers = await PaperModel.find({ status: 'published' }).sort({ createdAt: -1 }).lean();
+    res.json(papers);
+  } catch (error) {
+    res.status(500).json({ message: 'Unable to load published papers', error });
+  }
+};
+
 export const searchPapers = async (req: Request, res: Response) => {
   try {
     const { title, author, keywords, category, year, volume, issue } = req.query;

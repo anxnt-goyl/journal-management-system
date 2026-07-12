@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 import { UserModel } from '../models/User';
 import { PaperModel } from '../models/Paper';
 import { IssueModel } from '../models/Issue';
@@ -28,24 +29,43 @@ async function seedDatabase() {
   try {
     const userCount = await UserModel.countDocuments();
     if (userCount === 0) {
-      await UserModel.create(seedUsers);
+      const hashedUsers = await Promise.all(
+        seedUsers.map(async (user) => ({
+          ...user,
+          password: await bcrypt.hash(user.password, 10),
+        }))
+      );
+      await UserModel.create(hashedUsers);
+      console.log('Seeded default users (demo password: Journal@123)');
     }
+  } catch (error) {
+    console.warn('User seed skipped:', error instanceof Error ? error.message : error);
+  }
 
+  try {
     const paperCount = await PaperModel.countDocuments();
     if (paperCount === 0) {
       await PaperModel.create(seedPapers);
     }
+  } catch (error) {
+    console.warn('Paper seed skipped:', error instanceof Error ? error.message : error);
+  }
 
+  try {
     const issueCount = await IssueModel.countDocuments();
     if (issueCount === 0) {
       await IssueModel.create(seedIssues);
     }
+  } catch (error) {
+    console.warn('Issue seed skipped:', error instanceof Error ? error.message : error);
+  }
 
+  try {
     const announcementCount = await AnnouncementModel.countDocuments();
     if (announcementCount === 0) {
       await AnnouncementModel.create(seedAnnouncements);
     }
   } catch (error) {
-    console.warn('Seed data initialization skipped:', error);
+    console.warn('Announcement seed skipped:', error instanceof Error ? error.message : error);
   }
 }
