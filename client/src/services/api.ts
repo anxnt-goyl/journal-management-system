@@ -168,11 +168,27 @@ export async function loginWithBackend(email: string, password: string, role: st
   };
 }
 
-export async function registerWithBackend(name: string, email: string, password: string, institution: string, role: string) {
+export async function registerWithBackend(
+  name: string,
+  email: string,
+  password: string,
+  institution: string,
+  role: string,
+  avatarFile?: File | null
+) {
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('email', email);
+  formData.append('password', password);
+  formData.append('institution', institution);
+  formData.append('role', role);
+  if (avatarFile) {
+    formData.append('avatar', avatarFile, avatarFile.name);
+  }
+
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password, institution, role }),
+    body: formData,
   });
 
   if (!response.ok) {

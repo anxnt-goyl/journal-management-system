@@ -12,6 +12,7 @@ import {
 import { fetchMyPapers, submitPaperToBackend } from '../services/api';
 import { Paper, PaperStatus, AuthorInfo } from '../types';
 import { Button, Input, StatusChip, useToasts } from '../components/common/UI';
+import { UserAvatar } from '../components/common/UserAvatar';
 import {
   BookOpen,
   FileText,
@@ -42,6 +43,7 @@ export const AuthorDashboard: React.FC = () => {
   const [keywordsStr, setKeywordsStr] = useState('');
   const [fileName, setFileName] = useState('');
   const [fileSize, setFileSize] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [coAuthors, setCoAuthors] = useState<AuthorInfo[]>([]);
   const [coName, setCoName] = useState('');
   const [coEmail, setCoEmail] = useState('');
@@ -99,6 +101,7 @@ export const AuthorDashboard: React.FC = () => {
         addToast('Only PDF manuscripts are accepted.', 'error');
         return;
       }
+      setSelectedFile(file);
       setFileName(file.name);
       setFileSize((file.size / (1024 * 1024)).toFixed(1) + ' MB');
       addToast('PDF manuscript attached successfully.', 'success');
@@ -113,6 +116,7 @@ export const AuthorDashboard: React.FC = () => {
         addToast('Only PDF manuscripts are accepted.', 'error');
         return;
       }
+      setSelectedFile(file);
       setFileName(file.name);
       setFileSize((file.size / (1024 * 1024)).toFixed(1) + ' MB');
       addToast('PDF manuscript attached successfully.', 'success');
@@ -130,9 +134,6 @@ export const AuthorDashboard: React.FC = () => {
       addToast('Please sign in before submitting a manuscript.', 'error');
       return;
     }
-
-    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
-    const selectedFile = fileInput?.files?.[0] ?? null;
 
     if (!selectedFile) {
       addToast('Please attach a PDF manuscript.', 'error');
@@ -168,6 +169,7 @@ export const AuthorDashboard: React.FC = () => {
       setKeywordsStr('');
       setFileName('');
       setFileSize('');
+      setSelectedFile(null);
       setCoAuthors([]);
       setActiveTab('my_papers');
     } catch (error) {
@@ -256,9 +258,9 @@ export const AuthorDashboard: React.FC = () => {
 
         {/* PROFILE CHIP AT BOTTOM */}
         <div className="border-t border-gray-100 pt-4 flex items-center gap-3 bg-gray-50 p-2 rounded-xl hidden md:flex">
-          <img
-            src={user?.avatar}
-            alt={user?.name}
+          <UserAvatar
+            name={user?.name}
+            avatarUrl={user?.avatar}
             className="w-10 h-10 rounded-full object-cover border border-primary/20 shrink-0"
           />
           <div className="text-left overflow-hidden">

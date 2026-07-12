@@ -65,6 +65,19 @@ function writeStorage<T>(key: string, value: T): void {
   }
 }
 
+// The backend returns Mongo documents (id lives in `_id`, not `id`). Anything
+// read straight off the wire and pushed into localStorage needs this
+// normalization — otherwise every list that keys off `.id` (papers,
+// announcements, issues, etc.) ends up with `undefined` keys for every synced
+// item, which triggers React's "duplicate/missing key" warning and breaks
+// id-based lookups like getPaperById.
+function normalizeSyncedId<T extends { id?: string; _id?: string }>(raw: T): T {
+  if (raw && typeof raw === 'object' && !raw.id && raw._id) {
+    return { ...raw, id: raw._id };
+  }
+  return raw;
+}
+
 function syncFromApiOnce<T>(path: string, key: string, fallback: T, flagRef: { current: boolean }) {
   if (flagRef.current) {
     return;
@@ -72,7 +85,9 @@ function syncFromApiOnce<T>(path: string, key: string, fallback: T, flagRef: { c
 
   flagRef.current = true;
   void requestJson<T>(path).then((data) => {
-    if (data) {
+    if (Array.isArray(data)) {
+      writeStorage(key, data.map(normalizeSyncedId) as unknown as T);
+    } else if (data) {
       writeStorage(key, data);
     }
   });

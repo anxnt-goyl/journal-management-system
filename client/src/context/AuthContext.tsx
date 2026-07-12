@@ -5,17 +5,23 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { getUsers, getUserById, initializeStorage } from '../services/mockData';
+import { getUsers, initializeStorage } from '../services/mockData';
 import { loginWithBackend, registerWithBackend } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   currentRole: UserRole | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<boolean>;
-  register: (name: string, email: string, password: string, institution: string, role: UserRole) => Promise<void>;
+  login: (email: string, password: string, role: UserRole) => Promise<UserRole | null>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    institution: string,
+    role: UserRole,
+    avatarFile?: File | null
+  ) => Promise<void>;
   logout: () => void;
-  switchRole: (role: UserRole) => void;
   usersList: User[];
 }
 
@@ -48,24 +54,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, password: string, role: UserRole): Promise<boolean> => {
+  const login = async (email: string, password: string, role: UserRole): Promise<UserRole | null> => {
     try {
       const response = await loginWithBackend(email, password, role);
       const authenticatedUser = response.user;
+
+      // IMPORTANT: trust the role the backend returns for this account, never the
+      // role button the person happened to have selected on the login form.
+      // Previously this used the selected `role` param directly, which meant
+      // logging in with a reviewer's real credentials while the "Author" tab
+      // was selected would land you on the Author dashboard as that reviewer.
+      const actualRole = authenticatedUser.role as UserRole;
+
+      if (actualRole !== role) {
+        console.warn(
+          `Selected role "${role}" did not match account role "${actualRole}". Using the account's real role.`
+        );
+      }
+
       setUser(authenticatedUser);
-      setCurrentRole(role);
+      setCurrentRole(actualRole);
       localStorage.setItem('jms_current_user_id', authenticatedUser.id);
-      localStorage.setItem('jms_current_role', role);
+      localStorage.setItem('jms_current_role', actualRole);
       localStorage.setItem('jms_auth_token', response.token);
-      return true;
+      return actualRole;
     } catch (error) {
       console.warn('Backend login failed:', error);
-      return false;
+      return null;
     }
   };
 
-  const register = async (name: string, email: string, password: string, institution: string, role: UserRole) => {
-    const response = await registerWithBackend(name, email, password, institution, role);
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    institution: string,
+    role: UserRole,
+    avatarFile?: File | null
+  ) => {
+    const response = await registerWithBackend(name, email, password, institution, role, avatarFile);
     const registeredUser = response.user;
     setUser(registeredUser);
     setCurrentRole(role);
@@ -82,24 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('jms_auth_token');
   };
 
-  const switchRole = (role: UserRole) => {
-    setCurrentRole(role);
-    localStorage.setItem('jms_current_role', role);
-
-    // Map user profile corresponding to the switched role for realistic view switching
-    const loadedUsers = getUsers();
-    let correspondingUser = loadedUsers.find(u => u.role === role);
-    if (!correspondingUser) {
-      // Create user if not exists
-      correspondingUser = INITIAL_USERS_MAPPING[role];
-      const updated = [...loadedUsers, correspondingUser];
-      localStorage.setItem('jms_users', JSON.stringify(updated));
-      setUsersList(updated);
-    }
-    setUser(correspondingUser);
-    localStorage.setItem('jms_current_user_id', correspondingUser.id);
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -109,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
-        switchRole,
         usersList
       }}
     >
@@ -124,34 +132,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-const INITIAL_USERS_MAPPING: Record<UserRole, User> = {
-  author: {
-    id: 'user_author_1',
-    name: 'Dr. Emily Harrison',
-    email: 'emily.h@university.edu',
-    role: 'author',
-    institution: 'Stanford University',
-    publicationsCount: 14,
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'
-  },
-  reviewer: {
-    id: 'user_reviewer_1',
-    name: 'Prof. Marcus Vance',
-    email: 'marcus.v@oxford.ac.uk',
-    role: 'reviewer',
-    institution: 'University of Oxford',
-    specialty: ['Quantum Computing', 'Cryptography', 'Parallel Systems'],
-    publicationsCount: 42,
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
-  },
-  admin: {
-    id: 'user_admin_1',
-    name: 'Prof. Alistair Sterling',
-    email: 'a.sterling@nature-jms.org',
-    role: 'admin',
-    institution: 'Editor-in-Chief, Journal of Modern Science',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80'
-  }
 };

@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { getReviewerDashboardData, submitReviewToBackend } from '../services/api';
 import { Paper, Review } from '../types';
 import { Button, Input, StatusChip, useToasts } from '../components/common/UI';
+import { UserAvatar } from '../components/common/UserAvatar';
 import {
   ShieldAlert,
   ClipboardCheck,
@@ -162,9 +163,9 @@ export const ReviewerDashboard: React.FC = () => {
 
         {/* PROFILE CARD */}
         <div className="border-t border-gray-100 pt-4 flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl hidden md:flex">
-          <img
-            src={user?.avatar}
-            alt={user?.name}
+          <UserAvatar
+            name={user?.name}
+            avatarUrl={user?.avatar}
             className="w-10 h-10 rounded-full object-cover border border-primary/20 shrink-0"
           />
           <div className="text-left overflow-hidden">

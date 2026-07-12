@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button, Input, useToasts } from '../components/common/UI';
-import { UserPlus, ArrowLeft, GraduationCap } from 'lucide-react';
+import { UserPlus, ArrowLeft, GraduationCap, Camera } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface RegisterProps {
@@ -23,6 +23,33 @@ export const Register: React.FC<RegisterProps> = ({ onNavigate }) => {
   const [institution, setInstitution] = useState('');
   const [role, setRole] = useState<UserRole>('author');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  // Build/revoke a local preview URL whenever the chosen photo changes.
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreview(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(avatarFile);
+    setAvatarPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [avatarFile]);
+
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      addToast('Please choose a JPEG, PNG, or WEBP image.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      addToast('Profile photo must be under 5MB.', 'error');
+      return;
+    }
+    setAvatarFile(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +68,7 @@ export const Register: React.FC<RegisterProps> = ({ onNavigate }) => {
 
     setIsSubmitting(true);
     try {
-      await register(name, email, password, institution, role);
+      await register(name, email, password, institution, role, avatarFile);
       addToast(`Registration complete! Created your ${role.toUpperCase()} profile.`, 'success');
       setTimeout(() => {
         onNavigate(`dashboard_${role}`);
@@ -96,6 +123,32 @@ export const Register: React.FC<RegisterProps> = ({ onNavigate }) => {
               >
                 Peer Reviewer
               </button>
+            </div>
+          </div>
+
+          {/* PROFILE PHOTO (OPTIONAL) */}
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
+              ) : (
+                <Camera className="w-5 h-5 text-gray-300" />
+              )}
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                Profile Photo (Optional)
+              </label>
+              <label className="inline-block text-xs font-semibold text-primary hover:underline cursor-pointer">
+                {avatarFile ? 'Change photo' : 'Upload your photo'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-[10px] text-gray-400 mt-0.5">JPEG, PNG, or WEBP, up to 5MB. Skip this and we'll use your initials.</p>
             </div>
           </div>
 

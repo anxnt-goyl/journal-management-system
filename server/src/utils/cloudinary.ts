@@ -41,3 +41,38 @@ export const uploadBufferToCloudinary = async (buffer: Buffer, originalName: str
     Readable.from(buffer).pipe(uploadStream);
   });
 };
+
+const buildAvatarUploadOptions = (originalName: string, userId: string) => {
+  const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]+/g, '-').toLowerCase();
+  return {
+    resource_type: 'image' as const,
+    folder: 'journal-management-system/avatars',
+    public_id: `${userId}-${Date.now()}-${sanitizedName}`,
+    transformation: [{ width: 300, height: 300, crop: 'fill', gravity: 'face' }],
+  };
+};
+
+export const uploadAvatarBufferToCloudinary = async (buffer: Buffer, originalName: string, userId: string) => {
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    throw new Error('Cloudinary environment variables are not configured');
+  }
+
+  return new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      buildAvatarUploadOptions(originalName, userId),
+      (error, result) => {
+        if (error || !result) {
+          reject(error || new Error('Cloudinary avatar upload failed'));
+          return;
+        }
+
+        resolve({
+          secure_url: result.secure_url,
+          public_id: result.public_id,
+        });
+      }
+    );
+
+    Readable.from(buffer).pipe(uploadStream);
+  });
+};

@@ -30,11 +30,21 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
 
     setIsSubmitting(true);
     try {
-      const success = await login(email, password, role);
-      if (success) {
-        addToast(`Authenticated successfully as ${role.toUpperCase()}!`, 'success');
+      const actualRole = await login(email, password, role);
+      if (actualRole) {
+        // Navigate using the role the backend actually assigned to this account,
+        // not the tab the person had selected — those can differ if someone
+        // signs in with, say, a reviewer account while "Author" is highlighted.
+        if (actualRole !== role) {
+          addToast(
+            `Signed in as ${actualRole.toUpperCase()} (your account's actual role).`,
+            'success'
+          );
+        } else {
+          addToast(`Authenticated successfully as ${actualRole.toUpperCase()}!`, 'success');
+        }
         setTimeout(() => {
-          onNavigate(`dashboard_${role}`);
+          onNavigate(`dashboard_${actualRole}`);
         }, 1000);
       } else {
         addToast('Invalid email or password.', 'error');

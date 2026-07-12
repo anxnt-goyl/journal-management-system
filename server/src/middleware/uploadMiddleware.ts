@@ -16,3 +16,18 @@ export const uploadPaperFile = multer({
   fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 },
 }).single('file');
+
+const avatarFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only JPEG, PNG, or WEBP images are allowed for a profile photo'));
+  }
+};
+
+export const uploadAvatarFile = multer({
+  storage,
+  fileFilter: avatarFileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single('avatar');
