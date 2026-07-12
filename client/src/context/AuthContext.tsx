@@ -12,8 +12,8 @@ interface AuthContextType {
   user: User | null;
   currentRole: UserRole | null;
   isAuthenticated: boolean;
-  login: (email: string, role: UserRole) => Promise<boolean>;
-  register: (name: string, email: string, institution: string, role: UserRole) => Promise<void>;
+  login: (email: string, password: string, role: UserRole) => Promise<boolean>;
+  register: (name: string, email: string, password: string, institution: string, role: UserRole) => Promise<void>;
   logout: () => void;
   switchRole: (role: UserRole) => void;
   usersList: User[];
@@ -32,23 +32,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loadedUsers = getUsers();
     setUsersList(loadedUsers);
 
-    // Default: auto-authenticate as author to make the preview instant and rich
-    const defaultUserId = 'user_author_1';
+    // Only restore an existing session — never auto-log a fresh visitor in.
+    // (Previously this defaulted anyone with no session to a demo author account,
+    // which meant the app never actually required signing in.)
     const savedUserId = localStorage.getItem('jms_current_user_id');
-    const targetId = savedUserId || defaultUserId;
-    
-    const matchedUser = loadedUsers.find(u => u.id === targetId);
+    if (!savedUserId) {
+      return;
+    }
+
+    const matchedUser = loadedUsers.find(u => u.id === savedUserId);
     if (matchedUser) {
       setUser(matchedUser);
-      // Retrieve role if saved, otherwise use user's default role
       const savedRole = localStorage.getItem('jms_current_role') as UserRole;
       setCurrentRole(savedRole || matchedUser.role);
     }
   }, []);
 
-  const login = async (email: string, role: UserRole): Promise<boolean> => {
+  const login = async (email: string, password: string, role: UserRole): Promise<boolean> => {
     try {
-      const response = await loginWithBackend(email, 'password', role);
+      const response = await loginWithBackend(email, password, role);
       const authenticatedUser = response.user;
       setUser(authenticatedUser);
       setCurrentRole(role);
@@ -58,52 +60,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (error) {
       console.warn('Backend login failed:', error);
-      const loadedUsers = getUsers();
-      const matched = loadedUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-      if (matched) {
-        setUser(matched);
-        setCurrentRole(role);
-        localStorage.setItem('jms_current_user_id', matched.id);
-        localStorage.setItem('jms_current_role', role);
-        return true;
-      }
-
       return false;
     }
   };
 
-  const register = async (name: string, email: string, institution: string, role: UserRole) => {
-    try {
-      const response = await registerWithBackend(name, email, 'password', institution, role);
-      const registeredUser = response.user;
-      setUser(registeredUser);
-      setCurrentRole(role);
-      localStorage.setItem('jms_current_user_id', registeredUser.id);
-      localStorage.setItem('jms_current_role', role);
-      localStorage.setItem('jms_auth_token', response.token);
-    } catch (error) {
-      console.warn('Backend registration failed:', error);
-      const loadedUsers = getUsers();
-      const id = `user_${Date.now()}`;
-      const newUser: User = {
-        id,
-        name,
-        email,
-        role,
-        institution,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-      };
-
-      const updatedUsers = [...loadedUsers, newUser];
-      localStorage.setItem('jms_users', JSON.stringify(updatedUsers));
-      setUsersList(updatedUsers);
-
-      setUser(newUser);
-      setCurrentRole(role);
-      localStorage.setItem('jms_current_user_id', id);
-      localStorage.setItem('jms_current_role', role);
-    }
+  const register = async (name: string, email: string, password: string, institution: string, role: UserRole) => {
+    const response = await registerWithBackend(name, email, password, institution, role);
+    const registeredUser = response.user;
+    setUser(registeredUser);
+    setCurrentRole(role);
+    localStorage.setItem('jms_current_user_id', registeredUser.id);
+    localStorage.setItem('jms_current_role', role);
+    localStorage.setItem('jms_auth_token', response.token);
   };
 
   const logout = () => {

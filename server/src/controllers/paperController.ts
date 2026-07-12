@@ -191,6 +191,24 @@ export const createRevision = async (req: RequestWithFile, res: Response) => {
   }
 };
 
+// Returns only the papers submitted by the currently logged-in user.
+// The generic getPapers() above intentionally returns everything (used by
+// reviewers/admins to browse the full pool) — this endpoint is what
+// "My Manuscripts" on the author dashboard should actually call.
+export const getMyPapers = async (req: Request, res: Response) => {
+  try {
+    const authorId = req.user?.id;
+    if (!authorId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const papers = await PaperModel.find({ submittedBy: authorId }).sort({ createdAt: -1 }).lean();
+    return res.json(papers);
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to load your manuscripts', error });
+  }
+};
+
 export const getAuthorDashboard = async (req: Request, res: Response) => {
   try {
     const authorId = req.user?.id;

@@ -23,21 +23,21 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      addToast('Please enter your institutional email address.', 'error');
+    if (!email.trim() || !password.trim()) {
+      addToast('Please enter both your email and password.', 'error');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const success = await login(email, role);
+      const success = await login(email, password, role);
       if (success) {
         addToast(`Authenticated successfully as ${role.toUpperCase()}!`, 'success');
         setTimeout(() => {
           onNavigate(`dashboard_${role}`);
         }, 1000);
       } else {
-        addToast('Invalid credentials.', 'error');
+        addToast('Invalid email or password.', 'error');
       }
     } catch {
       addToast('Unable to sign in right now.', 'error');
@@ -49,7 +49,12 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
   const handleQuickLogin = async (selectedRole: UserRole, defaultEmail: string) => {
     setIsSubmitting(true);
     try {
-      await login(defaultEmail, selectedRole);
+      // Quick-login demo shortcuts use the actual seeded demo account password.
+      const success = await login(defaultEmail, 'Journal@123', selectedRole);
+      if (!success) {
+        addToast('Quick login failed — has the database been seeded?', 'error');
+        return;
+      }
       addToast(`Quick login authorized for ${selectedRole.toUpperCase()}!`, 'success');
       setTimeout(() => {
         onNavigate(`dashboard_${selectedRole}`);
@@ -180,7 +185,9 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
 
           <p className="mt-5 text-center text-xs text-gray-400">
             Don't have an academic account?{' '}
-            <button onClick={() => onNavigate('register')} className="text-primary hover:underline font-semibold">Register as Author</button>
+            <button onClick={() => onNavigate('register')} className="text-primary hover:underline font-semibold">
+              {role === 'reviewer' ? 'Register as Reviewer' : 'Register as Author'}
+            </button>
           </p>
         </div>
 

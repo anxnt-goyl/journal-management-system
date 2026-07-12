@@ -83,7 +83,7 @@ export async function fetchMyPapers(token: string | null): Promise<Paper[]> {
     return [];
   }
 
-  const response = await fetch(`${API_BASE_URL}/papers`, {
+  const response = await fetch(`${API_BASE_URL}/papers/mine`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

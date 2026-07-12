@@ -18,20 +18,30 @@ export const Register: React.FC<RegisterProps> = ({ onNavigate }) => {
   const { toasts, addToast, ToastComponent } = useToasts();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [institution, setInstitution] = useState('');
   const [role, setRole] = useState<UserRole>('author');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !institution.trim()) {
+    if (!name.trim() || !email.trim() || !institution.trim() || !password) {
       addToast('Please fill out all required academic fields.', 'error');
+      return;
+    }
+    if (password.length < 6) {
+      addToast('Password must be at least 6 characters long.', 'error');
+      return;
+    }
+    if (password !== confirmPassword) {
+      addToast('Passwords do not match.', 'error');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await register(name, email, institution, role);
+      await register(name, email, password, institution, role);
       addToast(`Registration complete! Created your ${role.toUpperCase()} profile.`, 'success');
       setTimeout(() => {
         onNavigate(`dashboard_${role}`);
@@ -104,6 +114,24 @@ export const Register: React.FC<RegisterProps> = ({ onNavigate }) => {
             placeholder="e.g. doyle@edinburgh.ac.uk"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <Input
+            label="Password"
+            required
+            type="password"
+            placeholder="At least 6 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <Input
+            label="Confirm Password"
+            required
+            type="password"
+            placeholder="Re-enter your password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
           />
 
           <Input
