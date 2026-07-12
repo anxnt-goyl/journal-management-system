@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getPapers, submitReview } from '../services/mockData';
+import { getReviewerDashboardData, submitReviewToBackend } from '../services/api';
 import { Paper, Review } from '../types';
 import { Button, Input, StatusChip, useToasts } from '../components/common/UI';
 import {
@@ -28,6 +28,8 @@ export const ReviewerDashboard: React.FC = () => {
   const [assignedPapers, setAssignedPapers] = useState<Paper[]>([]);
   const [completedReviews, setCompletedReviews] = useState<Review[]>([]);
 
+  const [isLoading, setIsLoading] = useState(true);
+
   // Review Form States
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [recommendation, setRecommendation] = useState<'accept' | 'minor_revision' | 'major_revision' | 'reject'>('accept');
@@ -38,72 +40,69 @@ export const ReviewerDashboard: React.FC = () => {
   const [commentsEditor, setCommentsEditor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      // Find papers where this reviewer is assigned
-      const papers = getPapers();
-      
-      // Filter out papers already reviewed by this reviewer
-      const assigned = papers.filter(
-        p => p.assignedReviewers.includes(user.id) &&
-             !p.reviews.some(r => r.reviewerId === user.id)
-      );
-      setAssignedPapers(assigned);
-
-      // Extract reviews completed by this reviewer
-      const completed: Review[] = [];
-      papers.forEach(p => {
-        p.reviews.forEach(r => {
-          if (r.reviewerId === user.id) {
-            completed.push(r);
-          }
-        });
-      });
-      setCompletedReviews(completed);
+  const loadDashboard = async () => {
+    if (!user) {
+      return;
     }
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('jms_auth_token');
+      const { pendingReviews, completedReviews: completed } = await getReviewerDashboardData(token);
+      setAssignedPapers(pendingReviews);
+      setCompletedReviews(completed);
+    } catch (error) {
+      console.warn('Unable to load reviewer dashboard:', error);
+      addToast('Unable to load your review workspace from the server.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadDashboard();
   }, [user, activeTab]);
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPaper || !commentsAuthor) {
       addToast('Please enter comments for the author.', 'error');
       return;
     }
+    if (!user) {
+      return;
+    }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      if (user) {
-        submitReview(selectedPaper.id, {
+    try {
+      await submitReviewToBackend(
+        {
           paperId: selectedPaper.id,
-          reviewerId: user.id,
-          reviewerName: user.name,
           recommendation,
           originalityRating: originality,
           methodologyRating: methodology,
           significanceRating: significance,
           commentsForAuthor: commentsAuthor,
-          commentsForEditor: commentsEditor
-        });
+          commentsForEditor: commentsEditor,
+        },
+        localStorage.getItem('jms_auth_token')
+      );
 
-        // Update paper status conditionally to model peer workflow
-        const allPapers = getPapers();
-        const pIndex = allPapers.findIndex(p => p.id === selectedPaper.id);
-        if (pIndex !== -1) {
-          const p = allPapers[pIndex];
-          p.status = recommendation === 'accept' ? 'accepted' : 'revision_requested';
-          localStorage.setItem('jms_papers', JSON.stringify(allPapers));
-        }
+      addToast('Technical review report submitted to Editor-in-Chief!', 'success');
 
-        setIsSubmitting(false);
-        addToast('Technical review report submitted to Editor-in-Chief!', 'success');
-        
-        // Reset states
-        setSelectedPaper(null);
-        setCommentsAuthor('');
-        setCommentsEditor('');
-        setActiveTab('history');
-      }
-    }, 1500);
+      // Reset states
+      setSelectedPaper(null);
+      setCommentsAuthor('');
+      setCommentsEditor('');
+      setOriginality(5);
+      setMethodology(5);
+      setSignificance(5);
+      setActiveTab('history');
+      await loadDashboard();
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Unable to submit review.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

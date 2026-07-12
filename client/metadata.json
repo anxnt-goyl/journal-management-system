@@ -1,6 +1,0 @@
-{
-  "name": "Journal Management System",
-  "description": "An enterprise-level Research Paper Submission and Publishing Platform styled with a premium academic design, supporting role-based dashboards for Authors, Reviewers, and Administrators.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

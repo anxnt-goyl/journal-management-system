@@ -46,26 +46,6 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleQuickLogin = async (selectedRole: UserRole, defaultEmail: string) => {
-    setIsSubmitting(true);
-    try {
-      // Quick-login demo shortcuts use the actual seeded demo account password.
-      const success = await login(defaultEmail, 'Journal@123', selectedRole);
-      if (!success) {
-        addToast('Quick login failed — has the database been seeded?', 'error');
-        return;
-      }
-      addToast(`Quick login authorized for ${selectedRole.toUpperCase()}!`, 'success');
-      setTimeout(() => {
-        onNavigate(`dashboard_${selectedRole}`);
-      }, 1000);
-    } catch {
-      addToast('Quick login failed.', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="w-full min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 text-left relative">
       {ToastComponent}
@@ -157,31 +137,6 @@ export const Login: React.FC<LoginProps> = ({ onNavigate }) => {
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </form>
-
-          {/* QUICK LOGIN SHORTCUTS FOR REVIEWING */}
-          <div className="mt-6 border-t border-gray-200 pt-5 space-y-2.5">
-            <span className="block text-[10px] font-bold text-gray-400 uppercase text-center">Quick Profile Simulation</span>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => handleQuickLogin('author', 'emily.h@university.edu')}
-                className="py-2 px-1 text-[11px] font-semibold border border-primary/20 text-primary bg-primary-cream hover:bg-primary/5 rounded-lg transition-colors leading-tight"
-              >
-                Author<br /><span className="text-[9px] font-mono font-normal">Dr. Emily</span>
-              </button>
-              <button
-                onClick={() => handleQuickLogin('reviewer', 'marcus.v@oxford.ac.uk')}
-                className="py-2 px-1 text-[11px] font-semibold border border-accent/30 text-accent-dark bg-accent/10 hover:bg-accent/20 rounded-lg transition-colors leading-tight"
-              >
-                Reviewer<br /><span className="text-[9px] font-mono font-normal">Prof. Vance</span>
-              </button>
-              <button
-                onClick={() => handleQuickLogin('admin', 'a.sterling@nature-jms.org')}
-                className="py-2 px-1 text-[11px] font-semibold border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors leading-tight"
-              >
-                Editor<br /><span className="text-[9px] font-mono font-normal">Prof. Alistair</span>
-              </button>
-            </div>
-          </div>
 
           <p className="mt-5 text-center text-xs text-gray-400">
             Don't have an academic account?{' '}

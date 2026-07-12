@@ -117,6 +117,12 @@ export const publishPaper = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Paper not found' });
     }
 
+    if (paper.status !== 'accepted') {
+      return res.status(400).json({
+        message: `Only accepted papers can be published (current status: ${paper.status}).`,
+      });
+    }
+
     paper.status = 'published';
     await paper.save();
 

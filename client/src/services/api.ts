@@ -1,6 +1,10 @@
-import { Paper, User } from '../types';
+import { Paper, User, Review } from '../types';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
+function authHeaders(token: string | null): Record<string, string> {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 function normalizePaper(paper: any): Paper {
   return {
@@ -21,9 +25,121 @@ function normalizePaper(paper: any): Paper {
     issue: paper.issue,
     doi: paper.doi,
     assignedReviewers: Array.isArray(paper.assignedReviewers) ? paper.assignedReviewers : [],
-    reviews: Array.isArray(paper.reviews) ? paper.reviews : [],
+    reviews: Array.isArray(paper.reviews) ? paper.reviews.map(normalizeReview) : [],
     decisionLetter: paper.decisionLetter,
   };
+}
+
+function normalizeReview(review: any): Review {
+  return {
+    id: review._id || review.id || `${review.paperId}_${review.reviewerId}`,
+    paperId: review.paperId,
+    reviewerId: review.reviewerId,
+    reviewerName: review.reviewerName,
+    recommendation: review.recommendation,
+    originalityRating: review.originalityRating,
+    methodologyRating: review.methodologyRating,
+    significanceRating: review.significanceRating,
+    commentsForAuthor: review.commentsForAuthor,
+    commentsForEditor: review.commentsForEditor,
+    submittedAt: review.createdAt || review.submittedAt || new Date().toISOString(),
+  };
+}
+
+function normalizeUser(u: any): User {
+  return {
+    id: u._id || u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    institution: u.institution || '',
+    bio: u.bio,
+    specialty: u.specialty,
+    publicationsCount: u.publicationsCount,
+    avatar: u.avatar,
+  };
+}
+
+async function authedJson<T>(path: string, token: string | null, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(token),
+      ...(options?.headers || {}),
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Request to ${path} failed`);
+  }
+
+  return response.json();
+}
+
+// The full pool of papers (used by reviewers/admins to see everything, not just their own)
+export async function getAllPapers(token: string | null): Promise<Paper[]> {
+  const payload = await authedJson<any>('/papers', token);
+  const papers = Array.isArray(payload) ? payload : payload?.papers || [];
+  return papers.map(normalizePaper);
+}
+
+// Admin-only: full user directory (used to populate the reviewer-assignment dropdown)
+export async function getAllUsers(token: string | null): Promise<User[]> {
+  const payload = await authedJson<any>('/users', token);
+  const users = Array.isArray(payload) ? payload : payload?.users || [];
+  return users.map(normalizeUser);
+}
+
+export async function assignReviewerToPaper(
+  paperId: string,
+  reviewerId: string,
+  token: string | null
+): Promise<void> {
+  await authedJson('/admin/reviewer-assignments', token, {
+    method: 'POST',
+    body: JSON.stringify({ paperId, reviewerId }),
+  });
+}
+
+export async function publishPaperOnBackend(paperId: string, token: string | null): Promise<Paper> {
+  const data = await authedJson<any>(`/admin/papers/${paperId}/publish`, token, {
+    method: 'PATCH',
+  });
+  return normalizePaper(data.paper || data);
+}
+
+// Reviewer's own workspace: assigned papers + completed/pending reviews
+export async function getReviewerDashboardData(token: string | null): Promise<{
+  assignedPapers: Paper[];
+  completedReviews: Review[];
+  pendingReviews: Paper[];
+}> {
+  const data = await authedJson<any>('/dashboard/reviewer', token);
+  return {
+    assignedPapers: (data.assignedPapers || []).map(normalizePaper),
+    completedReviews: (data.completedReviews || []).map(normalizeReview),
+    pendingReviews: (data.pendingReviews || []).map(normalizePaper),
+  };
+}
+
+export async function submitReviewToBackend(
+  payload: {
+    paperId: string;
+    recommendation: 'accept' | 'minor_revision' | 'major_revision' | 'reject';
+    originalityRating: number;
+    methodologyRating: number;
+    significanceRating: number;
+    commentsForAuthor: string;
+    commentsForEditor: string;
+  },
+  token: string | null
+): Promise<void> {
+  await authedJson('/reviewer/reviews', token, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function loginWithBackend(email: string, password: string, role: string) {

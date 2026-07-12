@@ -6,15 +6,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  getPapers,
   getIssues,
   getAnnouncements,
   getStats,
-  updatePaper,
   createAnnouncement,
-  createIssue,
-  getUsers
+  createIssue
 } from '../services/mockData';
+import { getAllPapers, getAllUsers, assignReviewerToPaper, publishPaperOnBackend } from '../services/api';
 import { Paper, JournalIssue, Announcement, JournalStats, User } from '../types';
 import { Button, Input, StatusChip, useToasts } from '../components/common/UI';
 import {
@@ -61,41 +59,60 @@ export const AdminDashboard: React.FC = () => {
   const [annContent, setAnnContent] = useState('');
   const [annCategory, setAnnCategory] = useState<'call_for_papers' | 'general' | 'news' | 'event'>('call_for_papers');
 
-  const loadData = () => {
-    setPapers(getPapers());
+  const [isLoadingPapers, setIsLoadingPapers] = useState(true);
+
+  const loadData = async () => {
     setIssues(getIssues());
     setAnnouncements(getAnnouncements());
     setStats(getStats());
-    const allUsers = getUsers();
-    setReviewers(allUsers.filter(u => u.role === 'reviewer'));
+
+    const token = localStorage.getItem('jms_auth_token');
+    setIsLoadingPapers(true);
+    try {
+      const [allPapers, allUsers] = await Promise.all([
+        getAllPapers(token),
+        getAllUsers(token),
+      ]);
+      setPapers(allPapers);
+      setReviewers(allUsers.filter(u => u.role === 'reviewer'));
+    } catch (error) {
+      console.warn('Unable to load editorial data from server:', error);
+      addToast('Unable to load manuscripts/reviewers from the server.', 'error');
+    } finally {
+      setIsLoadingPapers(false);
+    }
   };
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [activeTab]);
 
   // Handle Reviewer Assignment
-  const handleAssignReviewer = (paperId: string) => {
+  const handleAssignReviewer = async (paperId: string) => {
     if (!selectedReviewerId) {
       addToast('Please select a reviewer to assign.', 'error');
       return;
     }
 
-    const all = getPapers();
-    const index = all.findIndex(p => p.id === paperId);
-    if (index !== -1) {
-      const p = all[index];
-      if (p.assignedReviewers.includes(selectedReviewerId)) {
-        addToast('This reviewer is already assigned to this paper.', 'error');
-        return;
-      }
-      p.assignedReviewers = [...(p.assignedReviewers || []), selectedReviewerId];
-      p.status = 'under_review';
-      updatePaper(p);
+    try {
+      await assignReviewerToPaper(paperId, selectedReviewerId, localStorage.getItem('jms_auth_token'));
       addToast('Reviewer successfully assigned! Paper moved to Peer Review.', 'success');
-      loadData();
       setSelectedPaperId(null);
       setSelectedReviewerId('');
+      await loadData();
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Unable to assign reviewer.', 'error');
+    }
+  };
+
+  // Handle Publish (Editor-in-Chief final decision, once accepted by review)
+  const handlePublishPaper = async (paperId: string) => {
+    try {
+      await publishPaperOnBackend(paperId, localStorage.getItem('jms_auth_token'));
+      addToast('Manuscript published to the current issue!', 'success');
+      await loadData();
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Unable to publish paper.', 'error');
     }
   };
 
@@ -309,7 +326,13 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {papers.map((paper) => (
+              {isLoadingPapers && (
+                <div className="p-12 text-center text-gray-400 border border-dashed border-gray-200 rounded-xl bg-white">
+                  Loading manuscripts from the server...
+                </div>
+              )}
+
+              {!isLoadingPapers && papers.map((paper) => (
                 <div key={paper.id} className="bg-white border border-gray-100 rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div className="space-y-1">
@@ -357,6 +380,18 @@ export const AdminDashboard: React.FC = () => {
                           Cancel
                         </button>
                       </div>
+                    ) : paper.status === 'accepted' ? (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handlePublishPaper(paper.id)}
+                      >
+                        Publish to Current Issue
+                      </Button>
+                    ) : paper.status === 'published' ? (
+                      <span className="text-xs font-semibold text-green-600 flex items-center gap-1.5">
+                        <BookMarked className="w-4 h-4" /> Published
+                      </span>
                     ) : (
                       <Button
                         variant="secondary"
@@ -373,6 +408,12 @@ export const AdminDashboard: React.FC = () => {
 
                 </div>
               ))}
+
+              {!isLoadingPapers && papers.length === 0 && (
+                <div className="p-12 text-center text-gray-400 border border-dashed border-gray-200 rounded-xl bg-white">
+                  No manuscripts submitted yet.
+                </div>
+              )}
             </div>
           </div>
         )}

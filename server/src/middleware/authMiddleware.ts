@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
 interface JwtPayload {
   id: string;
@@ -23,7 +24,7 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
   }
 
   const token = authHeader.split(' ')[1];
-  const secret = process.env.JWT_SECRET || 'dev-secret-change-me';
+  const secret = env.JWT_SECRET;
 
   try {
     const decoded = jwt.verify(token, secret) as JwtPayload;

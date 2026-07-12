@@ -7,8 +7,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   getPapers,
-  createPaper,
-  updatePaper,
   getStats
 } from '../services/mockData';
 import { fetchMyPapers, submitPaperToBackend } from '../services/api';
@@ -153,7 +151,7 @@ export const AuthorDashboard: React.FC = () => {
       };
 
       const token = localStorage.getItem('jms_auth_token');
-      const submittedPaper = await submitPaperToBackend({
+      await submitPaperToBackend({
         title,
         abstract,
         category,
@@ -162,13 +160,6 @@ export const AuthorDashboard: React.FC = () => {
         submittedBy: user.id,
         file: selectedFile,
       }, token);
-
-      createPaper({
-        ...submittedPaper,
-        id: submittedPaper.id,
-        submittedBy: user.id,
-        status: 'submitted',
-      });
 
       addToast('Manuscript submitted successfully to Editorial Prescreening!', 'success');
 
