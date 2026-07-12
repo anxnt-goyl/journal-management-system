@@ -47,6 +47,10 @@ export interface Paper {
   assignedReviewers: string[]; // User IDs of reviewers
   reviews: Review[];
   decisionLetter?: string;
+  // Set when this paper is a resubmitted revision of an earlier submission.
+  revisionOf?: string;
+  parentPaperId?: string;
+  version?: number;
 }
 
 export interface Review {

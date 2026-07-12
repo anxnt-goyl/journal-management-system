@@ -9,7 +9,7 @@ import {
   getPapers,
   getStats
 } from '../services/mockData';
-import { fetchMyPapers, submitPaperToBackend } from '../services/api';
+import { fetchMyPapers, submitPaperToBackend, submitRevisionToBackend } from '../services/api';
 import { Paper, PaperStatus, AuthorInfo } from '../types';
 import { Button, Input, StatusChip, useToasts } from '../components/common/UI';
 import { UserAvatar } from '../components/common/UserAvatar';
@@ -49,24 +49,26 @@ export const AuthorDashboard: React.FC = () => {
   const [coEmail, setCoEmail] = useState('');
   const [coInstitution, setCoInstitution] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [revisingPaperId, setRevisingPaperId] = useState<string | null>(null);
+  const revisionFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Load User Papers
+  const loadPapers = async () => {
+    if (!user) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('jms_auth_token');
+      const papers = await fetchMyPapers(token);
+      setMyPapers(papers);
+    } catch {
+      const fallbackPapers = getPapers().filter(p => p.submittedBy === user.id);
+      setMyPapers(fallbackPapers);
+    }
+  };
+
   useEffect(() => {
-    const loadPapers = async () => {
-      if (!user) {
-        return;
-      }
-
-      try {
-        const token = localStorage.getItem('jms_auth_token');
-        const papers = await fetchMyPapers(token);
-        setMyPapers(papers);
-      } catch {
-        const fallbackPapers = getPapers().filter(p => p.submittedBy === user.id);
-        setMyPapers(fallbackPapers);
-      }
-    };
-
     void loadPapers();
   }, [user, activeTab]);
 
@@ -176,6 +178,35 @@ export const AuthorDashboard: React.FC = () => {
       addToast(error instanceof Error ? error.message : 'Submission failed.', 'error');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRevisionUploadClick = (paperId: string) => {
+    setRevisingPaperId(paperId);
+    // Defer so state updates before the click fires on the (now-targeted) hidden input.
+    setTimeout(() => revisionFileInputRef.current?.click(), 0);
+  };
+
+  const handleRevisionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const paperId = revisingPaperId;
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file || !paperId) return;
+
+    if (file.type !== 'application/pdf') {
+      addToast('Only PDF manuscripts are accepted.', 'error');
+      return;
+    }
+
+    try {
+      addToast('Uploading your revised manuscript...', 'info');
+      await submitRevisionToBackend(paperId, file, localStorage.getItem('jms_auth_token'));
+      addToast('Revised manuscript submitted for re-review!', 'success');
+      await loadPapers();
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Unable to submit revision.', 'error');
+    } finally {
+      setRevisingPaperId(null);
     }
   };
 
@@ -612,13 +643,23 @@ export const AuthorDashboard: React.FC = () => {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => addToast('Revision upload channel is temporarily in simulation mode.', 'info')}
+                      onClick={() => handleRevisionUploadClick(paper.id)}
                     >
                       Upload Revised PDF Manuscript
                     </Button>
                   </div>
                 </div>
               ))}
+
+              {/* Single shared hidden input drives the "Upload Revised PDF Manuscript"
+                  button above for whichever paper is currently targeted (revisingPaperId). */}
+              <input
+                ref={revisionFileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={handleRevisionFileChange}
+                className="hidden"
+              />
 
               {myPapers.filter(p => p.reviews && p.reviews.length > 0).length === 0 && (
                 <div className="p-12 text-center text-gray-400 border border-dashed border-gray-200 rounded-xl bg-white">

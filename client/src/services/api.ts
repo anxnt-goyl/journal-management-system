@@ -27,6 +27,9 @@ function normalizePaper(paper: any): Paper {
     assignedReviewers: Array.isArray(paper.assignedReviewers) ? paper.assignedReviewers : [],
     reviews: Array.isArray(paper.reviews) ? paper.reviews.map(normalizeReview) : [],
     decisionLetter: paper.decisionLetter,
+    revisionOf: paper.revisionOf,
+    parentPaperId: paper.parentPaperId,
+    version: paper.version,
   };
 }
 
@@ -103,9 +106,14 @@ export async function assignReviewerToPaper(
   });
 }
 
-export async function publishPaperOnBackend(paperId: string, token: string | null): Promise<Paper> {
+export async function publishPaperOnBackend(
+  paperId: string,
+  token: string | null,
+  volumeIssue?: { volume: string; issue: string }
+): Promise<Paper> {
   const data = await authedJson<any>(`/admin/papers/${paperId}/publish`, token, {
     method: 'PATCH',
+    body: volumeIssue ? JSON.stringify(volumeIssue) : undefined,
   });
   return normalizePaper(data.paper || data);
 }
@@ -273,4 +281,40 @@ export async function submitPaperToBackend(
 
   const data = await response.json();
   return normalizePaper(data);
+}
+
+// Wires up the previously-unused backend revision endpoint: submits a revised
+// PDF (and optionally updated title/abstract/keywords) for a paper that was
+// sent back with 'revision_requested'. This creates a new linked paper
+// document with status 'resubmitted' so it can go through review again.
+export async function submitRevisionToBackend(
+  paperId: string,
+  file: File,
+  token: string | null,
+  overrides?: { title?: string; abstract?: string }
+) {
+  if (!token) {
+    throw new Error('You need to sign in before submitting a revision');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file, file.name);
+  if (overrides?.title) formData.append('title', overrides.title);
+  if (overrides?.abstract) formData.append('abstract', overrides.abstract);
+
+  const response = await fetch(`${API_BASE_URL}/papers/${paperId}/revise`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Revision submission failed');
+  }
+
+  const data = await response.json();
+  return normalizePaper(data.paper);
 }

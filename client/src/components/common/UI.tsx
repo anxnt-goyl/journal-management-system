@@ -170,6 +170,7 @@ export const StatusChip: React.FC<{ status: string }> = ({ status }) => {
     submitted: { label: 'Manuscript Submitted', variant: 'primary' },
     under_review: { label: 'In Peer Review', variant: 'info' },
     revision_requested: { label: 'Revision Required', variant: 'warning' },
+    resubmitted: { label: 'Revision Submitted', variant: 'info' },
     accepted: { label: 'Manuscript Accepted', variant: 'success' },
     rejected: { label: 'Declined', variant: 'danger' },
     published: { label: 'Published in Issue', variant: 'success' }

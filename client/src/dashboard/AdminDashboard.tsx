@@ -38,6 +38,19 @@ export const AdminDashboard: React.FC = () => {
   
   // Database States
   const [papers, setPapers] = useState<Paper[]>([]);
+
+  // A resubmitted revision creates a *new* paper document linked back to the
+  // original via revisionOf/parentPaperId (see server/paperController.createRevision).
+  // Without this, the admin panel showed both the old and new paper as
+  // unrelated cards, which looked like a duplicate submission. Here we hide
+  // any paper that's been superseded by a newer version and keep only the
+  // latest one in the visible list.
+  const supersededPaperIds = new Set(
+    papers
+      .map((p) => p.revisionOf || p.parentPaperId)
+      .filter((id): id is string => Boolean(id))
+  );
+  const visiblePapers = papers.filter((p) => !supersededPaperIds.has(p.id));
   const [issues, setIssues] = useState<JournalIssue[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [reviewers, setReviewers] = useState<User[]>([]);
@@ -109,7 +122,16 @@ export const AdminDashboard: React.FC = () => {
   // Handle Publish (Editor-in-Chief final decision, once accepted by review)
   const handlePublishPaper = async (paperId: string) => {
     try {
-      await publishPaperOnBackend(paperId, localStorage.getItem('jms_auth_token'));
+      // The public Current Issue page filters published papers by volume/issue,
+      // so publish this paper into whichever issue is currently marked
+      // 'published' locally (falls back to the same 12/2 default the
+      // Current Issue page itself defaults to if no issue has been created yet).
+      const activeIssue = getIssues().find((i) => i.status === 'published');
+      const volumeIssue = activeIssue
+        ? { volume: String(activeIssue.volumeNumber), issue: String(activeIssue.issueNumber) }
+        : { volume: '12', issue: '2' };
+
+      await publishPaperOnBackend(paperId, localStorage.getItem('jms_auth_token'), volumeIssue);
       addToast('Manuscript published to the current issue!', 'success');
       await loadData();
     } catch (error) {
@@ -191,7 +213,7 @@ export const AdminDashboard: React.FC = () => {
                 activeTab === 'papers' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <FileText className="w-4.5 h-4.5" /> Manage Manuscripts ({papers.length})
+              <FileText className="w-4.5 h-4.5" /> Manage Manuscripts ({visiblePapers.length})
             </button>
             <button
               onClick={() => setActiveTab('issues')}
@@ -333,11 +355,16 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {!isLoadingPapers && papers.map((paper) => (
+              {!isLoadingPapers && visiblePapers.map((paper) => (
                 <div key={paper.id} className="bg-white border border-gray-100 rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div className="space-y-1">
                       <span className="text-[10px] font-mono bg-primary-cream text-primary border border-primary/5 px-2 py-0.5 rounded font-semibold uppercase">{paper.category}</span>
+                      {(paper.version || 1) > 1 && (
+                        <span className="text-[10px] font-mono bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded font-semibold uppercase ml-1.5">
+                          Revision {paper.version}
+                        </span>
+                      )}
                       <h3 className="font-serif font-bold text-base sm:text-lg text-gray-900 leading-tight mt-1.5">{paper.title}</h3>
                       <p className="text-xs text-gray-400">Submitted by: {paper.authors[0]?.name} ({paper.authors[0]?.institution}) • ID: {paper.id}</p>
                     </div>
@@ -393,6 +420,14 @@ export const AdminDashboard: React.FC = () => {
                       <span className="text-xs font-semibold text-green-600 flex items-center gap-1.5">
                         <BookMarked className="w-4 h-4" /> Published
                       </span>
+                    ) : paper.status === 'revision_requested' ? (
+                      <span className="text-xs font-medium text-amber-600 italic">
+                        Awaiting the author's revised submission
+                      </span>
+                    ) : paper.status === 'rejected' ? (
+                      <span className="text-xs font-medium text-gray-400 italic">
+                        Declined — no further action needed
+                      </span>
                     ) : (
                       <Button
                         variant="secondary"
@@ -410,7 +445,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               ))}
 
-              {!isLoadingPapers && papers.length === 0 && (
+              {!isLoadingPapers && visiblePapers.length === 0 && (
                 <div className="p-12 text-center text-gray-400 border border-dashed border-gray-200 rounded-xl bg-white">
                   No manuscripts submitted yet.
                 </div>

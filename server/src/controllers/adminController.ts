@@ -123,6 +123,13 @@ export const publishPaper = async (req: Request, res: Response) => {
       });
     }
 
+    // The public "Current Issue" page only shows published papers whose
+    // volume/issue match the active issue, so we need to stamp those onto
+    // the paper here — previously this only flipped status, so published
+    // papers had no volume/issue and could never appear anywhere.
+    const { volume, issue } = req.body as { volume?: string; issue?: string };
+    paper.volume = volume || paper.volume || '12';
+    paper.issue = issue || paper.issue || '2';
     paper.status = 'published';
     await paper.save();
 

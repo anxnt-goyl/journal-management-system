@@ -224,6 +224,18 @@ export const ReviewerDashboard: React.FC = () => {
                     <p className="text-xs text-gray-500 leading-relaxed italic border-l-2 border-gray-100 pl-3 pt-1">
                       "{paper.abstract.slice(0, 200)}..."
                     </p>
+
+                    {paper.fileUrl && (
+                      <a
+                        href={paper.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        View Manuscript PDF
+                      </a>
+                    )}
                   </div>
 
                   <div className="flex gap-2 shrink-0 self-stretch md:self-auto justify-end">
@@ -257,6 +269,22 @@ export const ReviewerDashboard: React.FC = () => {
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-wider text-gray-400">CONDUCTING EVALUATION FOR ARTICLE ID: {selectedPaper.id}</span>
                 <h2 className="font-serif font-bold text-lg sm:text-xl text-gray-900 leading-tight mt-1">"{selectedPaper.title}"</h2>
+                {selectedPaper.fileUrl ? (
+                  <a
+                    href={selectedPaper.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline mt-2"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    View Manuscript PDF{selectedPaper.fileName ? ` (${selectedPaper.fileName})` : ''}
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 mt-2">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    No manuscript file was found for this submission.
+                  </span>
+                )}
               </div>
               <button
                 onClick={() => setSelectedPaper(null)}

@@ -8,10 +8,21 @@ import { sendMail } from '../utils/mailer';
 export const submitReview = async (req: Request, res: Response) => {
   try {
     const reviewerId = req.user?.id;
-    const reviewerName = req.user?.name;
+    let reviewerName = req.user?.name;
 
-    if (!reviewerId || !reviewerName) {
+    if (!reviewerId) {
       return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Defensive fallback: tokens issued before this fix don't carry `name`.
+    // Rather than hard-failing every reviewer with an older token, look their
+    // name up from the DB.
+    if (!reviewerName) {
+      const reviewer = await UserModel.findById(reviewerId).lean();
+      if (!reviewer) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      reviewerName = reviewer.name;
     }
 
     const {
