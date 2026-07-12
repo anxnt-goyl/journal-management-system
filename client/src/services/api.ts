@@ -1,4 +1,4 @@
-import { Paper, User, Review } from '../types';
+import { Paper, User, Review, JournalIssue, Announcement, JournalStats } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -317,4 +317,104 @@ export async function submitRevisionToBackend(
 
   const data = await response.json();
   return normalizePaper(data.paper);
+}
+
+// ---------------------------------------------------------------------------
+// Issues, Announcements, and Stats — real MongoDB-backed data.
+// ---------------------------------------------------------------------------
+
+function normalizeIssue(issue: any): JournalIssue {
+  return {
+    id: issue._id || issue.id,
+    volumeNumber: issue.volumeNumber,
+    issueNumber: issue.issueNumber,
+    year: issue.year,
+    month: issue.month,
+    title: issue.title,
+    coverImage: issue.coverImage,
+    status: issue.status || 'draft',
+    publishedAt: issue.publishedAt,
+    description: issue.description,
+    papersCount: issue.papersCount || 0,
+  };
+}
+
+function normalizeAnnouncement(ann: any): Announcement {
+  return {
+    id: ann._id || ann.id,
+    title: ann.title,
+    content: ann.content,
+    category: ann.category || 'general',
+    publishedAt: ann.publishedAt,
+    isFeatured: Boolean(ann.isFeatured),
+  };
+}
+
+export async function getIssuesFromBackend(): Promise<JournalIssue[]> {
+  const response = await fetch(`${API_BASE_URL}/issues`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data) ? data.map(normalizeIssue) : [];
+}
+
+export async function createIssueOnBackend(
+  issue: {
+    volumeNumber: number;
+    issueNumber: number;
+    year: number;
+    month: string;
+    title?: string;
+    description?: string;
+    coverImage?: string;
+    status?: 'draft' | 'published';
+  },
+  token: string | null
+): Promise<JournalIssue> {
+  const data = await authedJson<any>('/issues', token, {
+    method: 'POST',
+    body: JSON.stringify(issue),
+  });
+  return normalizeIssue(data);
+}
+
+export async function publishIssueOnBackend(issueId: string, token: string | null): Promise<JournalIssue> {
+  const data = await authedJson<any>(`/issues/${issueId}/publish`, token, {
+    method: 'PATCH',
+  });
+  return normalizeIssue(data);
+}
+
+export async function getAnnouncementsFromBackend(): Promise<Announcement[]> {
+  const response = await fetch(`${API_BASE_URL}/announcements`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data) ? data.map(normalizeAnnouncement) : [];
+}
+
+export async function createAnnouncementOnBackend(
+  announcement: { title: string; content: string; category: string; isFeatured?: boolean },
+  token: string | null
+): Promise<Announcement> {
+  const data = await authedJson<any>('/announcements', token, {
+    method: 'POST',
+    body: JSON.stringify(announcement),
+  });
+  return normalizeAnnouncement(data);
+}
+
+export async function getStatsFromBackend(): Promise<JournalStats> {
+  const response = await fetch(`${API_BASE_URL}/stats`);
+  if (!response.ok) {
+    return {
+      impactFactor: 0,
+      hIndex: 0,
+      acceptanceRate: 0,
+      averageReviewDays: 0,
+      papersSubmittedTotal: 0,
+      papersPublishedTotal: 0,
+      activeReviewers: 0,
+      volumesCount: 0,
+    };
+  }
+  return response.json();
 }

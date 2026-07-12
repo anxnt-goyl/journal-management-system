@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { BookOpen, Calendar, ChevronRight, Layers } from 'lucide-react';
-import { getIssues } from '../services/mockData';
+import { getIssuesFromBackend } from '../services/api';
 import { JournalIssue } from '../types';
 
 export const Archives: React.FC = () => {
@@ -13,8 +13,9 @@ export const Archives: React.FC = () => {
 
   useEffect(() => {
     // Retrieve all published issues
-    const all = getIssues().filter(i => i.status === 'published');
-    setIssues(all);
+    void getIssuesFromBackend().then((all) => {
+      setIssues(all.filter(i => i.status === 'published'));
+    });
   }, []);
 
   return (

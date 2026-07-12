@@ -6,13 +6,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  getIssues,
-  getAnnouncements,
-  getStats,
-  createAnnouncement,
-  createIssue
-} from '../services/mockData';
-import { getAllPapers, getAllUsers, assignReviewerToPaper, publishPaperOnBackend } from '../services/api';
+  getAllPapers,
+  getAllUsers,
+  assignReviewerToPaper,
+  publishPaperOnBackend,
+  getIssuesFromBackend,
+  createIssueOnBackend,
+  getAnnouncementsFromBackend,
+  createAnnouncementOnBackend,
+  getStatsFromBackend,
+} from '../services/api';
 import { Paper, JournalIssue, Announcement, JournalStats, User } from '../types';
 import { Button, Input, StatusChip, useToasts } from '../components/common/UI';
 import { UserAvatar } from '../components/common/UserAvatar';
@@ -76,9 +79,18 @@ export const AdminDashboard: React.FC = () => {
   const [isLoadingPapers, setIsLoadingPapers] = useState(true);
 
   const loadData = async () => {
-    setIssues(getIssues());
-    setAnnouncements(getAnnouncements());
-    setStats(getStats());
+    try {
+      const [fetchedIssues, fetchedAnnouncements, fetchedStats] = await Promise.all([
+        getIssuesFromBackend(),
+        getAnnouncementsFromBackend(),
+        getStatsFromBackend(),
+      ]);
+      setIssues(fetchedIssues);
+      setAnnouncements(fetchedAnnouncements);
+      setStats(fetchedStats);
+    } catch (error) {
+      console.warn('Unable to load issues/announcements/stats from server:', error);
+    }
 
     const token = localStorage.getItem('jms_auth_token');
     setIsLoadingPapers(true);
@@ -124,9 +136,9 @@ export const AdminDashboard: React.FC = () => {
     try {
       // The public Current Issue page filters published papers by volume/issue,
       // so publish this paper into whichever issue is currently marked
-      // 'published' locally (falls back to the same 12/2 default the
-      // Current Issue page itself defaults to if no issue has been created yet).
-      const activeIssue = getIssues().find((i) => i.status === 'published');
+      // 'published' (falls back to 12/2 if no issue has been created yet,
+      // matching the Current Issue page's own default).
+      const activeIssue = issues.find((i) => i.status === 'published');
       const volumeIssue = activeIssue
         ? { volume: String(activeIssue.volumeNumber), issue: String(activeIssue.issueNumber) }
         : { volume: '12', issue: '2' };
@@ -140,50 +152,63 @@ export const AdminDashboard: React.FC = () => {
   };
 
   // Handle Create Issue
-  const handleCreateIssue = (e: React.FormEvent) => {
+  const handleCreateIssue = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!issueTitle) {
       addToast('Issue Title is required.', 'error');
       return;
     }
 
-    createIssue({
-      volumeNumber: volumeNum,
-      issueNumber: issueNum,
-      year: issueYear,
-      month: issueMonth,
-      title: issueTitle,
-      description: issueDesc,
-      status: 'published',
-      publishedAt: new Date().toISOString(),
-      coverImage: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&auto=format&fit=crop&q=80'
-    });
+    try {
+      await createIssueOnBackend(
+        {
+          volumeNumber: volumeNum,
+          issueNumber: issueNum,
+          year: issueYear,
+          month: issueMonth,
+          title: issueTitle,
+          description: issueDesc,
+          status: 'published',
+          coverImage: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&auto=format&fit=crop&q=80',
+        },
+        localStorage.getItem('jms_auth_token')
+      );
 
-    addToast(`Volume ${volumeNum}, Issue ${issueNum} published successfully!`, 'success');
-    setIssueTitle('');
-    setIssueDesc('');
-    loadData();
+      addToast(`Volume ${volumeNum}, Issue ${issueNum} published successfully!`, 'success');
+      setIssueTitle('');
+      setIssueDesc('');
+      await loadData();
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Unable to create issue.', 'error');
+    }
   };
 
   // Handle Create Announcement
-  const handleCreateAnnouncement = (e: React.FormEvent) => {
+  const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!annTitle || !annContent) {
       addToast('Announcement Title and Content are required.', 'error');
       return;
     }
 
-    createAnnouncement({
-      title: annTitle,
-      content: annContent,
-      category: annCategory,
-      isFeatured: annCategory === 'call_for_papers'
-    });
+    try {
+      await createAnnouncementOnBackend(
+        {
+          title: annTitle,
+          content: annContent,
+          category: annCategory,
+          isFeatured: annCategory === 'call_for_papers',
+        },
+        localStorage.getItem('jms_auth_token')
+      );
 
-    addToast('Academic announcement broadcasted successfully!', 'success');
-    setAnnTitle('');
-    setAnnContent('');
-    loadData();
+      addToast('Academic announcement broadcasted successfully!', 'success');
+      setAnnTitle('');
+      setAnnContent('');
+      await loadData();
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Unable to create announcement.', 'error');
+    }
   };
 
   return (

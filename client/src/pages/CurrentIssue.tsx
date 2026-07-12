@@ -7,7 +7,8 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, FileText, Download, Quote, Check, BookMarked, Layers, ChevronDown } from 'lucide-react';
 import { Button, useToasts } from '../components/common/UI';
-import { getIssues, getPapers } from '../services/mockData';
+import { getPapers } from '../services/mockData';
+import { getIssuesFromBackend } from '../services/api';
 import { JournalIssue, Paper } from '../types';
 
 export const CurrentIssue: React.FC = () => {
@@ -19,14 +20,19 @@ export const CurrentIssue: React.FC = () => {
   const [citationFormat, setCitationFormat] = useState<'IEEE' | 'Harvard'>('IEEE');
 
   useEffect(() => {
-    const issues = getIssues().filter(i => i.status === 'published');
-    if (issues.length > 0) {
-      setCurrentIssue(issues[0]); // Issue 1 is Vol 12, Issue 2
-      const allPapers = getPapers().filter(
-        p => p.status === 'published' && p.volume === '12' && p.issue === '2'
-      );
-      setPapers(allPapers);
-    }
+    void getIssuesFromBackend().then((issues) => {
+      const published = issues.filter(i => i.status === 'published');
+      if (published.length > 0) {
+        // Backend already sorts by year/issueNumber descending, so the first
+        // published issue here is the most recent one.
+        const latest = published[0];
+        setCurrentIssue(latest);
+        const allPapers = getPapers().filter(
+          p => p.status === 'published' && p.volume === String(latest.volumeNumber) && p.issue === String(latest.issueNumber)
+        );
+        setPapers(allPapers);
+      }
+    });
   }, []);
 
   const handleDownloadPDF = (paperTitle: string) => {

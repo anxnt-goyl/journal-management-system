@@ -8,6 +8,7 @@ import adminRoutes from './admin.routes';
 import issueRoutes from './issue.routes';
 import announcementRoutes from './announcement.routes';
 import notificationRoutes from './notification.routes';
+import statsRoutes from './stats.routes';
 
 const router = Router();
 
@@ -21,5 +22,6 @@ router.use(adminRoutes);
 router.use(issueRoutes);
 router.use(announcementRoutes);
 router.use(notificationRoutes);
+router.use(statsRoutes);
 
 export default router;

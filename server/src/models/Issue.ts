@@ -8,6 +8,7 @@ export interface IIssue extends Document {
   title?: string;
   coverImage?: string;
   status: 'draft' | 'published';
+  publishedAt?: Date;
   description?: string;
   papersCount: number;
 }
@@ -21,6 +22,7 @@ const issueSchema = new Schema<IIssue>(
     title: { type: String },
     coverImage: { type: String },
     status: { type: String, enum: ['draft', 'published'], default: 'draft' },
+    publishedAt: { type: Date },
     description: { type: String },
     papersCount: { type: Number, default: 0 },
   },

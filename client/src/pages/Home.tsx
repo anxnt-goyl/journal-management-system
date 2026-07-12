@@ -19,7 +19,8 @@ import {
   Calendar
 } from 'lucide-react';
 import { Button } from '../components/common/UI';
-import { getStats, getPapers, getAnnouncements } from '../services/mockData';
+import { getPapers } from '../services/mockData';
+import { getStatsFromBackend, getAnnouncementsFromBackend } from '../services/api';
 import { JournalStats, Paper, Announcement } from '../types';
 
 interface HomeProps {
@@ -33,12 +34,12 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   useEffect(() => {
-    setStats(getStats());
+    void getStatsFromBackend().then(setStats);
     const allPapers = getPapers().filter(p => p.status === 'published');
     if (allPapers.length > 0) {
       setFeaturedPaper(allPapers[0]);
     }
-    setAnnouncements(getAnnouncements());
+    void getAnnouncementsFromBackend().then(setAnnouncements);
   }, []);
 
   const categories = ['All', 'Computer Science & AI', 'Environmental Engineering', 'Electrical Engineering & IoT', 'Materials Science'];
