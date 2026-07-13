@@ -150,6 +150,16 @@ export async function submitReviewToBackend(
   });
 }
 
+export async function getCurrentUserFromBackend(token: string | null): Promise<User | null> {
+  if (!token) return null;
+  try {
+    const data = await authedJson<any>('/auth/me', token);
+    return normalizeUser(data.user);
+  } catch {
+    return null;
+  }
+}
+
 export async function loginWithBackend(email: string, password: string, role: string) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',

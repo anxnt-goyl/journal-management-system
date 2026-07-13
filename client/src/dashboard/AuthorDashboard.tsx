@@ -6,8 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  getPapers,
-  getStats
+  getPapers
 } from '../services/mockData';
 import { fetchMyPapers, submitPaperToBackend, submitRevisionToBackend } from '../services/api';
 import { Paper, PaperStatus, AuthorInfo } from '../types';
@@ -35,6 +34,17 @@ export const AuthorDashboard: React.FC = () => {
   const { toasts, addToast, ToastComponent } = useToasts();
   const [activeTab, setActiveTab] = useState<'overview' | 'submit' | 'my_papers' | 'revisions' | 'settings'>('overview');
   const [myPapers, setMyPapers] = useState<Paper[]>([]);
+
+  // Same collapsing as the admin panel: a resubmitted revision is stored as a
+  // separate linked paper document, so without this the author would see both
+  // the old (now-superseded) submission and their new revision as two
+  // unrelated cards.
+  const supersededPaperIds = new Set(
+    myPapers
+      .map((p) => p.revisionOf || p.parentPaperId)
+      .filter((id): id is string => Boolean(id))
+  );
+  const visibleMyPapers = myPapers.filter((p) => !supersededPaperIds.has(p.id));
   
   // Submit Form States
   const [title, setTitle] = useState('');
@@ -262,7 +272,7 @@ export const AuthorDashboard: React.FC = () => {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <BookOpen className="w-4.5 h-4.5" /> My Manuscripts ({myPapers.length})
+              <BookOpen className="w-4.5 h-4.5" /> My Manuscripts ({visibleMyPapers.length})
             </button>
             <button
               onClick={() => setActiveTab('revisions')}
@@ -318,20 +328,20 @@ export const AuthorDashboard: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="bg-white border border-gray-100 p-5 rounded-xl shadow-xs text-left">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-gray-400 block font-semibold">Manuscripts submitted</span>
-                <span className="text-3xl font-serif font-bold text-primary block mt-1">{myPapers.length}</span>
+                <span className="text-3xl font-serif font-bold text-primary block mt-1">{visibleMyPapers.length}</span>
                 <span className="text-[10px] text-gray-400 block mt-1.5 font-mono">Open-access publishing</span>
               </div>
               <div className="bg-white border border-gray-100 p-5 rounded-xl shadow-xs text-left">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-gray-400 block font-semibold">In active peer review</span>
                 <span className="text-3xl font-serif font-bold text-amber-600 block mt-1">
-                  {myPapers.filter(p => p.status === 'under_review' || p.status === 'revision_requested').length}
+                  {visibleMyPapers.filter(p => p.status === 'under_review' || p.status === 'revision_requested').length}
                 </span>
                 <span className="text-[10px] text-gray-400 block mt-1.5 font-mono">Assigned to technical specialists</span>
               </div>
               <div className="bg-white border border-gray-100 p-5 rounded-xl shadow-xs text-left">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-gray-400 block font-semibold">Accepted & Published</span>
                 <span className="text-3xl font-serif font-bold text-green-600 block mt-1">
-                  {myPapers.filter(p => p.status === 'published' || p.status === 'accepted').length}
+                  {visibleMyPapers.filter(p => p.status === 'published' || p.status === 'accepted').length}
                 </span>
                 <span className="text-[10px] text-gray-400 block mt-1.5 font-mono">DOI identifiers registered</span>
               </div>
@@ -343,9 +353,9 @@ export const AuthorDashboard: React.FC = () => {
                 <TrendingUp className="w-5 h-5 text-primary" /> Active Manuscript Progress
               </h3>
 
-              {myPapers.length > 0 ? (
+              {visibleMyPapers.length > 0 ? (
                 <div className="space-y-6 pt-2">
-                  {myPapers.slice(0, 2).map((paper) => (
+                  {visibleMyPapers.slice(0, 2).map((paper) => (
                     <div key={paper.id} className="border border-gray-100 p-4 rounded-xl space-y-4 bg-gray-50/40">
                       <div className="flex justify-between items-start gap-4">
                         <div>
@@ -542,12 +552,12 @@ export const AuthorDashboard: React.FC = () => {
         {activeTab === 'my_papers' && (
           <div className="space-y-6 text-left">
             <div className="border-b border-gray-100 pb-3">
-              <h1 className="font-serif font-black text-2.5xl text-gray-900 leading-none">Your Manuscripts ({myPapers.length})</h1>
+              <h1 className="font-serif font-black text-2.5xl text-gray-900 leading-none">Your Manuscripts ({visibleMyPapers.length})</h1>
               <p className="text-sm text-gray-500 mt-1">Review editor prescreen logs, peer reports, and decisions.</p>
             </div>
 
             <div className="space-y-4">
-              {myPapers.map((paper) => (
+              {visibleMyPapers.map((paper) => (
                 <div key={paper.id} className="bg-white border border-gray-100 rounded-xl p-5 sm:p-6 shadow-xs">
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div className="space-y-1.5 flex-1">
@@ -584,7 +594,7 @@ export const AuthorDashboard: React.FC = () => {
                 </div>
               ))}
 
-              {myPapers.length === 0 && (
+              {visibleMyPapers.length === 0 && (
                 <div className="p-12 text-center text-gray-400 border border-dashed border-gray-200 rounded-xl bg-white">
                   <p className="font-bold text-base">No Draft Submissions Found</p>
                   <p className="text-xs text-gray-400 mt-1">Submit your first draft utilizing the "Submit Paper" side menu.</p>
@@ -605,7 +615,7 @@ export const AuthorDashboard: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {myPapers.filter(p => p.reviews && p.reviews.length > 0).map((paper) => (
+              {visibleMyPapers.filter(p => p.reviews && p.reviews.length > 0).map((paper) => (
                 <div key={paper.id} className="bg-white border border-gray-150 p-6 sm:p-8 rounded-xl shadow-xs space-y-4 font-mono text-xs text-gray-700 leading-relaxed border-t-4 border-accent">
                   <div className="flex justify-between items-center border-b border-gray-100 pb-3 font-sans">
                     <span className="font-serif font-black text-base text-gray-900">Official Decision Brief</span>
@@ -661,7 +671,7 @@ export const AuthorDashboard: React.FC = () => {
                 className="hidden"
               />
 
-              {myPapers.filter(p => p.reviews && p.reviews.length > 0).length === 0 && (
+              {visibleMyPapers.filter(p => p.reviews && p.reviews.length > 0).length === 0 && (
                 <div className="p-12 text-center text-gray-400 border border-dashed border-gray-200 rounded-xl bg-white">
                   No decision letters have been issued for your active manuscripts yet.
                 </div>

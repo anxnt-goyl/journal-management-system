@@ -22,8 +22,21 @@ export const Guidelines: React.FC = () => {
     setChecklist((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
-  const downloadTemplate = (formatName: string) => {
-    addToast(`Downloading manuscript template: JMS_${formatName}_Template.docx`, 'success');
+  const downloadTemplate = (formatName: 'LaTeX' | 'Word') => {
+    const fileMap: Record<'LaTeX' | 'Word', { path: string; filename: string }> = {
+      LaTeX: { path: '/templates/JMS_LaTeX_Template.tex', filename: 'JMS_LaTeX_Template.tex' },
+      Word: { path: '/templates/JMS_Word_Template.docx', filename: 'JMS_Word_Template.docx' },
+    };
+    const { path, filename } = fileMap[formatName];
+
+    const link = document.createElement('a');
+    link.href = path;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    addToast(`Downloading manuscript template: ${filename}`, 'success');
   };
 
   const checklistItems = [

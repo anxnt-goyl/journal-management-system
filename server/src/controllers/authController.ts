@@ -106,3 +106,31 @@ export const login = async (req: Request, res: Response) => {
 export const logout = (_req: Request, res: Response) => {
   return res.json({ message: 'Logout successful' });
 };
+
+export const getMe = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const user = await UserModel.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    return res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        institution: user.institution,
+        bio: user.bio,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to load current user', error });
+  }
+};

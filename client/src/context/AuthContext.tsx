@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
 import { getUsers, initializeStorage } from '../services/mockData';
-import { loginWithBackend, registerWithBackend } from '../services/api';
+import { loginWithBackend, registerWithBackend, getCurrentUserFromBackend } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -39,19 +39,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUsersList(loadedUsers);
 
     // Only restore an existing session — never auto-log a fresh visitor in.
-    // (Previously this defaulted anyone with no session to a demo author account,
-    // which meant the app never actually required signing in.)
-    const savedUserId = localStorage.getItem('jms_current_user_id');
-    if (!savedUserId) {
+    const token = localStorage.getItem('jms_auth_token');
+    if (!token) {
       return;
     }
 
-    const matchedUser = loadedUsers.find(u => u.id === savedUserId);
-    if (matchedUser) {
-      setUser(matchedUser);
-      const savedRole = localStorage.getItem('jms_current_role') as UserRole;
-      setCurrentRole(savedRole || matchedUser.role);
-    }
+    // Validate the saved token against the real backend and pull fresh user
+    // data. Previously this looked the saved user id up in a local mock
+    // users list — real backend-authenticated users were never added to
+    // that list, so restoration silently failed on every page refresh and
+    // the person appeared logged out even with a perfectly valid token.
+    void getCurrentUserFromBackend(token).then((freshUser) => {
+      if (freshUser) {
+        setUser(freshUser);
+        const savedRole = localStorage.getItem('jms_current_role') as UserRole;
+        setCurrentRole(savedRole || freshUser.role);
+      } else {
+        // Token is invalid/expired — clear the stale session rather than
+        // leaving the app in a half-logged-in state.
+        localStorage.removeItem('jms_auth_token');
+        localStorage.removeItem('jms_current_user_id');
+        localStorage.removeItem('jms_current_role');
+      }
+    });
   }, []);
 
   const login = async (email: string, password: string, role: UserRole): Promise<UserRole | null> => {

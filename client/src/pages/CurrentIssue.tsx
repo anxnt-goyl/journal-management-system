@@ -15,28 +15,35 @@ export const CurrentIssue: React.FC = () => {
   const { toasts, addToast, ToastComponent } = useToasts();
   const [currentIssue, setCurrentIssue] = useState<JournalIssue | null>(null);
   const [papers, setPapers] = useState<Paper[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [expandedPaperId, setExpandedPaperId] = useState<string | null>(null);
   const [copiedCitationId, setCopiedCitationId] = useState<string | null>(null);
   const [citationFormat, setCitationFormat] = useState<'IEEE' | 'Harvard'>('IEEE');
 
   useEffect(() => {
-    void getIssuesFromBackend().then((issues) => {
-      const published = issues.filter(i => i.status === 'published');
-      if (published.length > 0) {
-        // Backend already sorts by year/issueNumber descending, so the first
-        // published issue here is the most recent one.
-        const latest = published[0];
-        setCurrentIssue(latest);
-        const allPapers = getPapers().filter(
-          p => p.status === 'published' && p.volume === String(latest.volumeNumber) && p.issue === String(latest.issueNumber)
-        );
-        setPapers(allPapers);
-      }
-    });
+    void getIssuesFromBackend()
+      .then((issues) => {
+        const published = issues.filter(i => i.status === 'published');
+        if (published.length > 0) {
+          // Backend already sorts by year/issueNumber descending, so the first
+          // published issue here is the most recent one.
+          const latest = published[0];
+          setCurrentIssue(latest);
+          const allPapers = getPapers().filter(
+            p => p.status === 'published' && p.volume === String(latest.volumeNumber) && p.issue === String(latest.issueNumber)
+          );
+          setPapers(allPapers);
+        }
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
-  const handleDownloadPDF = (paperTitle: string) => {
-    addToast(`Downloading manuscript PDF: ${paperTitle.slice(0, 30)}...`, 'success');
+  const handleDownloadPDF = (paper: Paper) => {
+    if (!paper.fileUrl) {
+      addToast('No manuscript file is available for this paper.', 'error');
+      return;
+    }
+    window.open(paper.fileUrl, '_blank', 'noopener,noreferrer');
   };
 
   const getFormattedCitation = (paper: Paper, format: 'IEEE' | 'Harvard') => {
@@ -47,10 +54,15 @@ export const CurrentIssue: React.FC = () => {
       return format === 'IEEE' ? `${initial} ${lastName}` : `${lastName}, ${initial}`;
     }).join(format === 'IEEE' ? ', ' : ' and ');
 
+    const volume = paper.volume || currentIssue?.volumeNumber || '';
+    const issue = paper.issue || currentIssue?.issueNumber || '';
+    const year = currentIssue?.year || new Date().getFullYear();
+    const doi = paper.doi || `10.5555/jms.${year}.${volume}`;
+
     if (format === 'IEEE') {
-      return `${authorsStr}, "${paper.title}," Journal of Modern Science, vol. 12, no. 2, pp. 104-121, Jun. 2026. DOI: ${paper.doi || '10.5555/jms.2026.12'}`;
+      return `${authorsStr}, "${paper.title}," Journal of Modern Science, vol. ${volume}, no. ${issue}, ${year}. DOI: ${doi}`;
     } else {
-      return `${authorsStr} (2026) '${paper.title}', Journal of Modern Science, 12(2), pp. 104-121. doi: ${paper.doi || '10.5555/jms.2026.12'}.`;
+      return `${authorsStr} (${year}) '${paper.title}', Journal of Modern Science, ${volume}(${issue}). doi: ${doi}.`;
     }
   };
 
@@ -87,7 +99,7 @@ export const CurrentIssue: React.FC = () => {
                 {currentIssue.description}
               </p>
               <div className="flex flex-wrap gap-4 pt-1 text-xs text-gray-400 font-mono">
-                <span>Published on: June 10, 2026</span>
+                <span>Published on: {currentIssue.publishedAt ? new Date(currentIssue.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}</span>
                 <span>•</span>
                 <span>Articles Count: {papers.length}</span>
                 <span>•</span>
@@ -97,7 +109,16 @@ export const CurrentIssue: React.FC = () => {
           </div>
         )}
 
+        {!isLoading && !currentIssue && (
+          <div className="bg-white border border-gray-100 rounded-xl p-10 text-center">
+            <p className="text-sm text-gray-500">
+              No issue has been published yet. Once the editorial team publishes an issue, it will appear here.
+            </p>
+          </div>
+        )}
+
         {/* ARTICLES TABLE OF CONTENTS */}
+        {currentIssue && (
         <section className="space-y-6">
           <div className="flex items-center gap-2 border-b border-gray-200 pb-3">
             <Layers className="w-5.5 h-5.5 text-primary" />
@@ -142,7 +163,7 @@ export const CurrentIssue: React.FC = () => {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => handleDownloadPDF(paper.title)}
+                        onClick={() => handleDownloadPDF(paper)}
                         title="Download PDF Manuscript"
                       >
                         <Download className="w-4 h-4 mr-1.5" />
@@ -245,6 +266,7 @@ export const CurrentIssue: React.FC = () => {
             })}
           </div>
         </section>
+        )}
 
       </div>
     </div>

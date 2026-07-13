@@ -41,8 +41,12 @@ export const Search: React.FC = () => {
     setResults(filtered);
   }, [searchQuery, selectedCategory]);
 
-  const handleDownloadPDF = (title: string) => {
-    addToast(`Downloading article PDF: ${title.slice(0, 30)}...`, 'success');
+  const handleDownloadPDF = (paper: Paper) => {
+    if (!paper.fileUrl) {
+      addToast('No manuscript file is available for this paper.', 'error');
+      return;
+    }
+    window.open(paper.fileUrl, '_blank', 'noopener,noreferrer');
   };
 
   const categories = [
@@ -144,7 +148,7 @@ export const Search: React.FC = () => {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => handleDownloadPDF(paper.title)}
+                        onClick={() => handleDownloadPDF(paper)}
                       >
                         <Download className="w-3.5 h-3.5 mr-1" /> PDF
                       </Button>
