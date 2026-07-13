@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Search as SearchIcon, FileText, Download, Bookmark, Layers, Calendar } from 'lucide-react';
-import { getPapers } from '../services/mockData';
+import { getPublishedPapersFromBackend } from '../services/api';
 import { Paper } from '../types';
 import { Button, useToasts } from '../components/common/UI';
 
@@ -13,21 +13,30 @@ export const Search: React.FC = () => {
   const { toasts, addToast, ToastComponent } = useToasts();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [allPapers, setAllPapers] = useState<Paper[]>([]);
   const [results, setResults] = useState<Paper[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [expandedAbstractId, setExpandedAbstractId] = useState<string | null>(null);
 
+  // Load the published paper pool once from the real backend
   useEffect(() => {
-    // Default: load all published papers
-    const allPublished = getPapers().filter(p => p.status === 'published');
-    
-    let filtered = allPublished;
-    
-    // Filter by Category
+    getPublishedPapersFromBackend()
+      .then(setAllPapers)
+      .catch((error) => {
+        console.error('Failed to load published papers:', error);
+        addToast('Unable to load published papers right now.', 'error');
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  // Derive filtered results from the loaded pool whenever the query/category changes
+  useEffect(() => {
+    let filtered = allPapers;
+
     if (selectedCategory !== 'All') {
       filtered = filtered.filter(p => p.category === selectedCategory);
     }
 
-    // Filter by query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -39,7 +48,7 @@ export const Search: React.FC = () => {
     }
 
     setResults(filtered);
-  }, [searchQuery, selectedCategory]);
+  }, [allPapers, searchQuery, selectedCategory]);
 
   const handleDownloadPDF = (paper: Paper) => {
     if (!paper.fileUrl) {
@@ -110,7 +119,13 @@ export const Search: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            {results.map((paper) => {
+            {isLoading && (
+              <div className="p-12 text-center text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl">
+                Loading published literature...
+              </div>
+            )}
+
+            {!isLoading && results.map((paper) => {
               const isExpanded = expandedAbstractId === paper.id;
               return (
                 <div key={paper.id} className="bg-white border border-gray-100 rounded-xl p-5 sm:p-6 shadow-xs hover:border-primary/25 transition-all">
@@ -165,7 +180,7 @@ export const Search: React.FC = () => {
               );
             })}
 
-            {results.length === 0 && (
+            {!isLoading && results.length === 0 && (
               <div className="p-12 text-center text-gray-500 bg-white border border-dashed border-gray-200 rounded-xl space-y-2">
                 <p className="font-bold text-base">No Matching Literature Found</p>
                 <p className="text-xs text-gray-400">Try simplifying keywords or selecting 'All' focus categories.</p>

@@ -19,8 +19,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { Button } from '../components/common/UI';
-import { getPapers } from '../services/mockData';
-import { getStatsFromBackend, getAnnouncementsFromBackend } from '../services/api';
+import { getStatsFromBackend, getAnnouncementsFromBackend, getPublishedPapersFromBackend } from '../services/api';
 import { JournalStats, Paper, Announcement } from '../types';
 
 interface HomeProps {
@@ -29,25 +28,27 @@ interface HomeProps {
 
 export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState<JournalStats | null>(null);
+  const [publishedPapers, setPublishedPapers] = useState<Paper[]>([]);
   const [featuredPaper, setFeaturedPaper] = useState<Paper | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   useEffect(() => {
     void getStatsFromBackend().then(setStats);
-    const allPapers = getPapers().filter(p => p.status === 'published');
-    if (allPapers.length > 0) {
-      setFeaturedPaper(allPapers[0]);
-    }
     void getAnnouncementsFromBackend().then(setAnnouncements);
+    void getPublishedPapersFromBackend().then((papers) => {
+      setPublishedPapers(papers);
+      if (papers.length > 0) {
+        setFeaturedPaper(papers[0]);
+      }
+    });
   }, []);
 
   const categories = ['All', 'Computer Science & AI', 'Environmental Engineering', 'Electrical Engineering & IoT', 'Materials Science'];
 
   const filterPapers = () => {
-    const all = getPapers().filter(p => p.status === 'published');
-    if (selectedCategory === 'All') return all;
-    return all.filter(p => p.category === selectedCategory);
+    if (selectedCategory === 'All') return publishedPapers;
+    return publishedPapers.filter(p => p.category === selectedCategory);
   };
 
   const timelineSteps = [

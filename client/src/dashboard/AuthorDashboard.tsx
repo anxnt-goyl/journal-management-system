@@ -5,9 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import {
-  getPapers
-} from '../services/mockData';
 import { fetchMyPapers, submitPaperToBackend, submitRevisionToBackend } from '../services/api';
 import { Paper, PaperStatus, AuthorInfo } from '../types';
 import { Button, Input, StatusChip, useToasts } from '../components/common/UI';
@@ -72,9 +69,10 @@ export const AuthorDashboard: React.FC = () => {
       const token = localStorage.getItem('jms_auth_token');
       const papers = await fetchMyPapers(token);
       setMyPapers(papers);
-    } catch {
-      const fallbackPapers = getPapers().filter(p => p.submittedBy === user.id);
-      setMyPapers(fallbackPapers);
+    } catch (error) {
+      console.error('Failed to load manuscripts:', error);
+      addToast('Unable to load your manuscripts right now. Please refresh and try again.', 'error');
+      setMyPapers([]);
     }
   };
 

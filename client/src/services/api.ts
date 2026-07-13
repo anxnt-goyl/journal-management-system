@@ -82,6 +82,13 @@ async function authedJson<T>(path: string, token: string | null, options?: Reque
 }
 
 // The full pool of papers (used by reviewers/admins to see everything, not just their own)
+// Public: published papers only, safe for unauthenticated landing/search/current-issue pages
+export async function getPublishedPapersFromBackend(): Promise<Paper[]> {
+  const payload = await authedJson<any>('/papers/published', null);
+  const papers = Array.isArray(payload) ? payload : payload?.papers || [];
+  return papers.map(normalizePaper);
+}
+
 export async function getAllPapers(token: string | null): Promise<Paper[]> {
   const payload = await authedJson<any>('/papers', token);
   const papers = Array.isArray(payload) ? payload : payload?.papers || [];

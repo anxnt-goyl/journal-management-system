@@ -4,8 +4,23 @@ import { PaperModel } from '../models/Paper';
 
 export const getIssues = async (_req: Request, res: Response) => {
   try {
-    const issues = await IssueModel.find({}).sort({ year: -1, issueNumber: -1 }).lean();
-    res.json(issues);
+    const issues = await IssueModel.find({}).sort({ publishedAt: -1, createdAt: -1 }).lean();
+
+    // The stored papersCount is only set once, at issue-creation time — it
+    // never updates when a paper gets published into that volume/issue
+    // afterward. Recomputing it live here keeps "Articles Count" honest.
+    const issuesWithLiveCounts = await Promise.all(
+      issues.map(async (issue) => {
+        const papersCount = await PaperModel.countDocuments({
+          status: 'published',
+          volume: String(issue.volumeNumber),
+          issue: String(issue.issueNumber),
+        });
+        return { ...issue, papersCount };
+      })
+    );
+
+    res.json(issuesWithLiveCounts);
   } catch (error) {
     res.status(500).json({ message: 'Unable to load issues', error });
   }

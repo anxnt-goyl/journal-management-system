@@ -7,8 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, FileText, Download, Quote, Check, BookMarked, Layers, ChevronDown } from 'lucide-react';
 import { Button, useToasts } from '../components/common/UI';
-import { getPapers } from '../services/mockData';
-import { getIssuesFromBackend } from '../services/api';
+import { getIssuesFromBackend, getPublishedPapersFromBackend } from '../services/api';
 import { JournalIssue, Paper } from '../types';
 
 export const CurrentIssue: React.FC = () => {
@@ -21,19 +20,28 @@ export const CurrentIssue: React.FC = () => {
   const [citationFormat, setCitationFormat] = useState<'IEEE' | 'Harvard'>('IEEE');
 
   useEffect(() => {
-    void getIssuesFromBackend()
-      .then((issues) => {
-        const published = issues.filter(i => i.status === 'published');
+    void Promise.all([getIssuesFromBackend(), getPublishedPapersFromBackend()])
+      .then(([issues, publishedPapers]) => {
+        // An issue can technically be marked "published" (e.g. created while
+        // testing) without having any real papers attached to it yet. Never
+        // show one of those as the "Current Issue" — prefer the most recent
+        // published issue that actually has content.
+        const published = issues
+          .filter(i => i.status === 'published')
+          .filter(i => i.papersCount > 0);
+
         if (published.length > 0) {
-          // Backend already sorts by year/issueNumber descending, so the first
-          // published issue here is the most recent one.
           const latest = published[0];
           setCurrentIssue(latest);
-          const allPapers = getPapers().filter(
-            p => p.status === 'published' && p.volume === String(latest.volumeNumber) && p.issue === String(latest.issueNumber)
+          const papersInIssue = publishedPapers.filter(
+            p => p.volume === String(latest.volumeNumber) && p.issue === String(latest.issueNumber)
           );
-          setPapers(allPapers);
+          setPapers(papersInIssue);
         }
+      })
+      .catch((error) => {
+        console.error('Failed to load current issue:', error);
+        addToast('Unable to load the current issue right now.', 'error');
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -126,6 +134,11 @@ export const CurrentIssue: React.FC = () => {
           </div>
 
           <div className="space-y-4">
+            {papers.length === 0 && (
+              <div className="p-10 text-center text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl">
+                No articles have been attached to this issue yet.
+              </div>
+            )}
             {papers.map((paper, index) => {
               const isExpanded = expandedPaperId === paper.id;
               const isCopied = copiedCitationId === paper.id;

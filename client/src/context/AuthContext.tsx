@@ -5,7 +5,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { getUsers, initializeStorage } from '../services/mockData';
 import { loginWithBackend, registerWithBackend, getCurrentUserFromBackend } from '../services/api';
 
 interface AuthContextType {
@@ -22,7 +21,6 @@ interface AuthContextType {
     avatarFile?: File | null
   ) => Promise<void>;
   logout: () => void;
-  usersList: User[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,14 +28,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
-  const [usersList, setUsersList] = useState<User[]>([]);
 
   useEffect(() => {
-    // Initialize storage first
-    initializeStorage();
-    const loadedUsers = getUsers();
-    setUsersList(loadedUsers);
-
     // Only restore an existing session — never auto-log a fresh visitor in.
     const token = localStorage.getItem('jms_auth_token');
     if (!token) {
@@ -127,8 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         login,
         register,
-        logout,
-        usersList
+        logout
       }}
     >
       {children}
