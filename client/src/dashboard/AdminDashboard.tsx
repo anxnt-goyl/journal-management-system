@@ -31,7 +31,12 @@ import {
   FileText,
   UserCheck,
   Megaphone,
-  BookMarked
+  BookMarked,
+  Star,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  MessageSquare
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -61,6 +66,7 @@ export const AdminDashboard: React.FC = () => {
 
   // Assignment states
   const [selectedPaperId, setSelectedPaperId] = useState<string | null>(null);
+  const [expandedReviewsPaperId, setExpandedReviewsPaperId] = useState<string | null>(null);
   const [selectedReviewerId, setSelectedReviewerId] = useState<string>('');
 
   // New Issue States
@@ -466,6 +472,107 @@ export const AdminDashboard: React.FC = () => {
                       </Button>
                     )}
                   </div>
+
+                  {/* Reviews & Comments panel */}
+                  {paper.reviews && paper.reviews.length > 0 && (
+                    <div className="border border-gray-150 rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => setExpandedReviewsPaperId(expandedReviewsPaperId === paper.id ? null : paper.id)}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-gray-100/60 transition-colors text-left"
+                      >
+                        <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                          <MessageSquare className="w-4 h-4 text-primary" />
+                          Reviews &amp; Comments ({paper.reviews.length})
+                        </span>
+                        {expandedReviewsPaperId === paper.id ? (
+                          <ChevronUp className="w-4 h-4 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+
+                      {expandedReviewsPaperId === paper.id && (
+                        <div className="divide-y divide-gray-100">
+                          {paper.reviews.map((review, idx) => (
+                            <div key={idx} className="p-4 space-y-3 text-left bg-white">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-gray-900">{review.reviewerName}</span>
+                                  <span className="text-[10px] text-gray-400">
+                                    {new Date(review.submittedAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <span className={`text-[10px] font-mono font-semibold uppercase px-2 py-0.5 rounded border ${
+                                  review.recommendation === 'accept'
+                                    ? 'bg-green-50 text-green-700 border-green-100'
+                                    : review.recommendation === 'reject'
+                                    ? 'bg-red-50 text-red-700 border-red-100'
+                                    : 'bg-amber-50 text-amber-700 border-amber-100'
+                                }`}>
+                                  {review.recommendation === 'accept' && 'Accept'}
+                                  {review.recommendation === 'minor_revision' && 'Minor Revisions'}
+                                  {review.recommendation === 'major_revision' && 'Major Revisions'}
+                                  {review.recommendation === 'reject' && 'Reject'}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-gray-600">
+                                <span className="flex items-center gap-1">
+                                  Originality:
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star key={i} className={`w-3 h-3 ${i < review.originalityRating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
+                                  ))}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  Methodology:
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star key={i} className={`w-3 h-3 ${i < review.methodologyRating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
+                                  ))}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  Significance:
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star key={i} className={`w-3 h-3 ${i < review.significanceRating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
+                                  ))}
+                                </span>
+                              </div>
+
+                              {review.commentsForAuthor && (
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Feedback for Author</p>
+                                  <p className="text-xs text-gray-700 leading-relaxed bg-gray-50 border border-gray-100 rounded-lg p-2.5">{review.commentsForAuthor}</p>
+                                </div>
+                              )}
+
+                              {review.commentsForEditor && (
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">Confidential Remarks (Editor-in-Chief only)</p>
+                                  <p className="text-xs text-amber-900 leading-relaxed bg-amber-50 border border-amber-100 rounded-lg p-2.5">{review.commentsForEditor}</p>
+                                </div>
+                              )}
+
+                              {review.reportUrl ? (
+                                <a
+                                  href={review.reportUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  Download Review Report (PDF)
+                                </a>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 italic">
+                                  <Download className="w-3.5 h-3.5" />
+                                  PDF report unavailable for this review
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                 </div>
               ))}

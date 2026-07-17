@@ -11,6 +11,7 @@ export interface IReview extends Document {
   commentsForAuthor: string;
   commentsForEditor: string;
   submittedAt: Date;
+  reportUrl?: string;
 }
 
 const reviewSchema = new Schema<IReview>(
@@ -29,6 +30,7 @@ const reviewSchema = new Schema<IReview>(
     commentsForAuthor: { type: String, default: '' },
     commentsForEditor: { type: String, default: '' },
     submittedAt: { type: Date, default: Date.now },
+    reportUrl: { type: String },
   },
   { timestamps: true }
 );

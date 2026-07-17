@@ -46,6 +46,7 @@ function normalizeReview(review: any): Review {
     commentsForAuthor: review.commentsForAuthor,
     commentsForEditor: review.commentsForEditor,
     submittedAt: review.createdAt || review.submittedAt || new Date().toISOString(),
+    reportUrl: review.reportUrl,
   };
 }
 

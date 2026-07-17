@@ -34,6 +34,7 @@ export interface IPaper extends Document {
     commentsForAuthor: string;
     commentsForEditor: string;
     submittedAt: Date;
+    reportUrl?: string;
   }>;
 }
 
@@ -75,6 +76,7 @@ const paperSchema = new Schema<IPaper>(
         commentsForAuthor: { type: String },
         commentsForEditor: { type: String },
         submittedAt: { type: Date, default: Date.now },
+        reportUrl: { type: String },
       },
     ],
   },

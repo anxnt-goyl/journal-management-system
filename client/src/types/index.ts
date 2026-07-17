@@ -65,6 +65,7 @@ export interface Review {
   commentsForAuthor: string;
   commentsForEditor: string;
   submittedAt: string;
+  reportUrl?: string;
 }
 
 export interface JournalIssue {

@@ -76,3 +76,40 @@ export const uploadAvatarBufferToCloudinary = async (buffer: Buffer, originalNam
     Readable.from(buffer).pipe(uploadStream);
   });
 };
+
+const buildReviewReportUploadOptions = (paperId: string, reviewerId: string) => {
+  return {
+    resource_type: 'raw' as const,
+    folder: 'journal-management-system/review-reports',
+    public_id: `${paperId}-${reviewerId}-${Date.now()}`,
+  };
+};
+
+export const uploadReviewReportBufferToCloudinary = async (
+  buffer: Buffer,
+  paperId: string,
+  reviewerId: string
+) => {
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    throw new Error('Cloudinary environment variables are not configured');
+  }
+
+  return new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      buildReviewReportUploadOptions(paperId, reviewerId),
+      (error, result) => {
+        if (error || !result) {
+          reject(error || new Error('Cloudinary review report upload failed'));
+          return;
+        }
+
+        resolve({
+          secure_url: result.secure_url,
+          public_id: result.public_id,
+        });
+      }
+    );
+
+    Readable.from(buffer).pipe(uploadStream);
+  });
+};

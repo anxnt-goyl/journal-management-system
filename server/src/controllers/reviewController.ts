@@ -4,6 +4,8 @@ import { PaperModel } from '../models/Paper';
 import { ReviewModel } from '../models/Review';
 import { createNotification } from '../utils/notifications';
 import { sendMail } from '../utils/mailer';
+import { generateReviewReportPdf } from '../utils/reviewPDF';
+import { uploadReviewReportBufferToCloudinary } from '../utils/cloudinary';
 
 export const submitReview = async (req: Request, res: Response) => {
   try {
@@ -49,6 +51,28 @@ export const submitReview = async (req: Request, res: Response) => {
       return res.status(409).json({ message: 'You have already submitted a review for this paper' });
     }
 
+    let reportUrl: string | undefined;
+    try {
+      const pdfBuffer = await generateReviewReportPdf({
+        paperTitle: paper.title,
+        reviewerName,
+        recommendation,
+        originalityRating,
+        methodologyRating,
+        significanceRating,
+        commentsForAuthor,
+        commentsForEditor,
+        submittedAt: new Date(),
+      });
+      const uploaded = await uploadReviewReportBufferToCloudinary(pdfBuffer, paperId, reviewerId);
+      reportUrl = uploaded.secure_url;
+    } catch (pdfError) {
+      // Don't let PDF generation/upload failure (e.g. missing Cloudinary
+      // config) block the actual review submission — the review itself is
+      // the important part; the PDF report is a convenience artifact.
+      console.warn('Unable to generate/upload review report PDF:', pdfError);
+    }
+
     const review = await ReviewModel.create({
       paperId,
       reviewerId,
@@ -59,6 +83,7 @@ export const submitReview = async (req: Request, res: Response) => {
       significanceRating,
       commentsForAuthor,
       commentsForEditor,
+      reportUrl,
     });
 
     paper.reviews.push({
@@ -71,6 +96,7 @@ export const submitReview = async (req: Request, res: Response) => {
       commentsForAuthor,
       commentsForEditor,
       submittedAt: new Date(),
+      reportUrl,
     } as any);
 
     let nextStatus: typeof paper.status = paper.status;

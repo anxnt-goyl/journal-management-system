@@ -41,6 +41,17 @@ function AppContent() {
     setCurrentPath(path);
   };
 
+  // If the person logs out (or their session expires) while sitting on a
+  // dashboard page, isAuthenticated flips to false but currentPath was never
+  // updated — so the dashboard component kept trying to render with no user.
+  // This redirects to the public homepage as soon as that happens, for every
+  // role (author/reviewer/admin), not just reviewer.
+  useEffect(() => {
+    if (currentPath.startsWith('dashboard_') && !isAuthenticated) {
+      setCurrentPath('home');
+    }
+  }, [isAuthenticated, currentPath]);
+
   // Render Page Component Dynamically
   const renderPage = () => {
     switch (currentPath) {
