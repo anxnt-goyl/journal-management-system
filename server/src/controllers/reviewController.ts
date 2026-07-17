@@ -4,7 +4,7 @@ import { PaperModel } from '../models/Paper';
 import { ReviewModel } from '../models/Review';
 import { createNotification } from '../utils/notifications';
 import { sendMail } from '../utils/mailer';
-import { generateReviewReportPdf } from '../utils/reviewPDF';
+import { generateReviewReportPdf } from '../utils/reviewPdf';
 import { uploadReviewReportBufferToCloudinary } from '../utils/cloudinary';
 
 export const submitReview = async (req: Request, res: Response) => {
